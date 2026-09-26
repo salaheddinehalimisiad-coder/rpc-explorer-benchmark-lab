@@ -3,7 +3,7 @@
 **Date :** 26 septembre 2026  
 **Phase :** 04 — Implémentation gRPC / Protobuf  
 **Statut :** PASS  
-**Commit :** *(sera complété après validation et push)*
+**Commit :** `ef6d52c` (vérifié sur origin/main)
 
 ---
 
