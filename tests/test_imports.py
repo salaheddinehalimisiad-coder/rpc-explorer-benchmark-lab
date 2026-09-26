@@ -26,9 +26,9 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(RPCServer, "register_method"))
         self.assertTrue(hasattr(RPCServer, "start"))
 
-        # Vérifie que les méthodes sont bien des placeholders déclarés
+        # En Phase 02, RPCClient est pleinement implémenté et lève ConnectionError si aucun serveur n'écoute
         client = RPCClient()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(ConnectionError):
             client.call("test_method")
 
     def test_business_layer_imports(self):

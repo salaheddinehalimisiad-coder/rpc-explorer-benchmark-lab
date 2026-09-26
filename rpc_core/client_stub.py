@@ -3,38 +3,50 @@ RPC Client Stub
 
 Ce module fournit le client RPC Custom avec transparence d'appel.
 
-Le stub permet d'appeler des méthodes distantes comme si elles étaient locales:
+Le stub permet d'appeler des méthodes distantes comme si elles étaient locales :
     client = RPCClient(host="localhost", port=5000)
     result = client.call("calculate_factorial", n=5)
-
-STATUT: PLACEHOLDER — Implémentation prévue en Phase 02
+    # ou grâce au stub dynamique :
+    result = client.calculate_factorial(n=5)
 """
 
 import socket
 from typing import Any, Optional, Dict
 from .serializer import RPCSerializer
+from .transport import send_message, receive_message, TransportError, ConnectionClosedError
+
+
+class RPCError(Exception):
+    """
+    Exception levée lorsque le serveur RPC retourne une erreur applicative ou protocolaire.
+
+    Attributes:
+        code: Code d'erreur (ex: "METHOD_NOT_FOUND", "INVALID_ARGS", "INTERNAL_ERROR")
+        message: Message d'erreur explicatif
+        data: Données de contexte ou traceback additionnel
+    """
+
+    def __init__(self, code: str, message: str, data: Optional[Dict[str, Any]] = None):
+        self.code = code
+        self.message = message
+        self.data = data or {}
+        super().__init__(f"[{code}] {message}")
 
 
 class RPCClient:
     """
     Client RPC Custom permettant des appels transparents vers un serveur distant.
 
-    Architecture:
-        CLIENT CALL
+    Architecture :
+        CLIENT CALL (ex: client.calculate_factorial(n=5))
             ↓
-        STUB (ce module)
+        STUB (génération dynamique ou méthode .call())
             ↓
-        SERIALIZATION (RPCSerializer)
+        SERIALIZATION (RPCSerializer -> JSON bytes UTF-8)
             ↓
-        TRANSPORT (TCP Socket)
+        TRANSPORT (TCP Socket avec cadrage 4 octets)
             ↓
-        NETWORK → SERVER
-
-    Attributs:
-        host: Adresse du serveur RPC
-        port: Port du serveur RPC
-        timeout: Timeout des appels RPC (secondes)
-        serializer: Instance de RPCSerializer
+        NETWORK -> SERVER
     """
 
     def __init__(self, host: str = "localhost", port: int = 5000, timeout: float = 5.0):
@@ -42,99 +54,124 @@ class RPCClient:
         Initialise le client RPC.
 
         Args:
-            host: Adresse du serveur
-            port: Port du serveur
-            timeout: Timeout pour les appels RPC (secondes)
+            host: Adresse d'hôte du serveur RPC.
+            port: Port d'écoute du serveur RPC.
+            timeout: Timeout réseau en secondes pour la connexion et la réponse.
         """
         self.host = host
         self.port = port
         self.timeout = timeout
         self.serializer = RPCSerializer()
 
-    def call(self, method: str, **kwargs) -> Any:
+    def connect(self) -> socket.socket:
         """
-        Appelle une méthode distante via RPC.
-
-        Cette méthode fournit la transparence d'appel:
-        L'utilisateur appelle client.call("method", arg1=val1) comme une fonction locale,
-        mais derrière:
-            1. Sérialisation de la requête
-            2. Envoi via socket
-            3. Attente de la réponse
-            4. Désérialisation
-            5. Retour du résultat
-
-        Args:
-            method: Nom de la méthode à appeler
-            **kwargs: Arguments de la méthode
+        Établit une connexion TCP au serveur RPC avec timeout.
 
         Returns:
-            Any: Résultat de l'appel distant
+            socket.socket: Socket connectée et configurée.
 
         Raises:
-            ConnectionError: Si connexion au serveur échoue
-            TimeoutError: Si le serveur ne répond pas dans le délai
-            RPCError: Si le serveur retourne une erreur
-
-        Example:
-            >>> client = RPCClient()
-            >>> result = client.call("calculate_factorial", n=5)
-            >>> print(result)
-            120
+            ConnectionError: Si la connexion est refusée ou impossible.
+            TimeoutError: Si le délai de connexion est dépassé.
         """
-        # TODO: Implémenter en Phase 02
-        raise NotImplementedError("call sera implémenté en Phase 02")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        try:
+            sock.connect((self.host, self.port))
+            return sock
+        except socket.timeout as err:
+            sock.close()
+            raise TimeoutError(
+                f"Timeout ({self.timeout}s) dépassé lors de la connexion à {self.host}:{self.port}"
+            ) from err
+        except (socket.error, OSError) as err:
+            sock.close()
+            raise ConnectionError(
+                f"Impossible de se connecter au serveur RPC sur {self.host}:{self.port} : {err}"
+            ) from err
 
     def _send_request(self, request_data: bytes) -> bytes:
         """
-        Envoie une requête RPC au serveur et attend la réponse.
+        Envoie une requête sérialisée et attend la réponse sérialisée.
 
         Args:
-            request_data: Données sérialisées de la requête
+            request_data: Requête JSON encodée en bytes.
 
         Returns:
-            bytes: Réponse sérialisée du serveur
+            bytes: Réponse JSON brute retournée par le serveur.
 
         Raises:
-            ConnectionError: Si la connexion échoue
-            TimeoutError: Si timeout atteint
+            ConnectionError: Si la connexion échoue ou est coupée.
+            TimeoutError: Si le serveur ne répond pas dans le délai imparti.
         """
-        # TODO: Implémenter en Phase 02
-        raise NotImplementedError("_send_request sera implémenté en Phase 02")
+        sock = self.connect()
+        try:
+            send_message(sock, request_data)
+            response_data = receive_message(sock)
+            return response_data
+        except (socket.timeout, TimeoutError) as err:
+            raise TimeoutError(
+                f"Timeout ({self.timeout}s) dépassé en attendant la réponse du serveur RPC."
+            ) from err
+        except ConnectionClosedError as err:
+            raise ConnectionError(f"Le serveur RPC a fermé la connexion : {err}") from err
+        except TransportError as err:
+            raise ConnectionError(f"Erreur de communication réseau : {err}") from err
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
 
-    def connect(self) -> socket.socket:
+    def call(self, method: str, **kwargs) -> Any:
         """
-        Établit une connexion TCP au serveur RPC.
+        Exécute un appel distant synchrone.
+
+        Args:
+            method: Nom de la méthode distante.
+            **kwargs: Arguments nommés à transmettre.
 
         Returns:
-            socket.socket: Socket connecté
+            Any: Résultat renvoyé par la méthode distante.
 
         Raises:
-            ConnectionError: Si la connexion échoue
+            RPCError: Si le serveur signale une erreur distante.
+            ConnectionError: Si le transport échoue.
+            TimeoutError: Si le timeout expire.
         """
-        # TODO: Implémenter en Phase 02
-        raise NotImplementedError("connect sera implémenté en Phase 02")
+        # 1. Sérialisation (Marshaling)
+        req_bytes = self.serializer.serialize_request(method=method, args=kwargs)
+
+        # 2. Transport réseau (Socket TCP)
+        resp_bytes = self._send_request(req_bytes)
+
+        # 3. Désérialisation (Unmarshaling)
+        response = self.serializer.deserialize_response(resp_bytes)
+
+        # 4. Vérification d'erreur applicative
+        if response.get("error") is not None:
+            err = response["error"]
+            raise RPCError(
+                code=err.get("code", "RPC_GENERIC_ERROR"),
+                message=err.get("message", "Une erreur distante s'est produite"),
+                data=err.get("data")
+            )
+
+        return response.get("result")
+
+    def __getattr__(self, name: str):
+        """
+        Permet l'invocation dynamique transparente :
+        client.calculate_factorial(n=5) équivaut à client.call("calculate_factorial", n=5)
+        """
+        if name.startswith("_"):
+            raise AttributeError(f"'{self.__class__.__name__}' n'a pas d'attribut '{name}'")
+
+        def dynamic_stub(**kwargs):
+            return self.call(name, **kwargs)
+
+        return dynamic_stub
 
     def close(self):
-        """
-        Ferme la connexion au serveur (si persistante).
-        """
-        # TODO: Implémenter en Phase 02 si nécessaire
+        """Ferme les ressources associées au client si applicable."""
         pass
-
-
-class RPCError(Exception):
-    """
-    Exception levée lorsque le serveur RPC retourne une erreur.
-
-    Attributes:
-        code: Code d'erreur (ex: "METHOD_NOT_FOUND", "INVALID_ARGS")
-        message: Message d'erreur
-        data: Données additionnelles
-    """
-
-    def __init__(self, code: str, message: str, data: Optional[Dict] = None):
-        self.code = code
-        self.message = message
-        self.data = data or {}
-        super().__init__(f"[{code}] {message}")

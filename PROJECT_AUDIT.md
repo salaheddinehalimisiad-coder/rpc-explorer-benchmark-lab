@@ -2,28 +2,41 @@
 
 **Dernière mise à jour :** 26 septembre 2026  
 **Auditeur :** Antigravity Agent  
-**Phase active actuelle :** FIN DE PHASE 01 (FONDATION VALIDÉE — EN ATTENTE VALIDATION POUR PHASE 02)  
+**Phase active actuelle :** FIN DE PHASE 02 (CUSTOM RPC CORE VALIDÉ — EN ATTENTE VALIDATION POUR PHASE 03)  
 **Historique initial :** Phase 00 réalisée le 25 septembre 2026  
 
 ---
 
-## 0. ÉTAT RÉCAPITULATIF SUITE À LA PHASE 01 (26 SEPTEMBRE 2026)
+## 0. ÉTAT RÉCAPITULATIF SUITE À LA PHASE 02 (26 SEPTEMBRE 2026)
 
-**STATUT : SOCLE ET FONDATION ARCHITECTURALE VALIDÉS (PASS)**
+**STATUT : CUSTOM RPC CORE COMPLÈTEMENT IMPLÉMENTÉ ET VALIDÉ (PASS)**
 
-1. **Dépôt Git :** Initialisé (`git init`).
-2. **Cahier des charges officiel :** Transcrit fidèlement dans [`docs/cahier_des_charges_officiel.md`](docs/cahier_des_charges_officiel.md) depuis les photographies de cadrage de l'encadrant M. Yacine Said archivées dans `docs/spec_photos/`.
-3. **Configuration projet :** 
-   - `requirements.txt` corrigé et validé par pip dry-run.
-   - `pyproject.toml` configuré (`requires-python = ">=3.8"`, options de build et pytest).
-   - `.gitignore` affiné pour protéger les fichiers de configuration JSON.
-4. **Packages et squelettes sans faux code :**
-   - Tous les répertoires d'architecture possèdent leur `__init__.py`.
-   - Tous les squelettes (`business/inventory_service.py`, `grpc/`, `rest/`, `benchmark/`, `failure_simulator/`, `under_the_hood/`, `cli/`, `main.py`, `protos/inventory.proto`) sont créés avec docstrings complètes et levée de `NotImplementedError`.
-5. **Validation par tests :**
-   - 12 tests automatisés exécutés via `unittest` (`test_structure.py`, `test_imports.py`) : **12/12 PASS (100%)**.
-6. **Documentation de phase :**
-   - Rapport complet consigné dans [`docs/phase_01_report.md`](docs/phase_01_report.md).
+1. **Sérialisation JSON UTF-8 (`rpc_core/serializer.py`) :**
+   - Encodage/Décodage strict avec schémas normalisés (id, method, args, metadata).
+   - Réponses avec champ error structuré et génération d'UUIDv4 automatique.
+2. **Cadrage Réseau TCP (`rpc_core/transport.py`) :**
+   - Résolution du streaming TCP par préfixe de longueur binaire (4 octets uint32).
+   - Réception résiliente à la fragmentation et propagation propre des `TimeoutError`.
+3. **Client Stub Transparent (`rpc_core/client_stub.py`) :**
+   - Implémentation complète de `RPCClient`.
+   - Transparence d'appel classique (`call`) et dynamique (`client.nom_methode()`).
+   - Gestion des exceptions distantes `RPCError` et des timeouts.
+4. **Serveur Skeleton & Dispatcher (`rpc_core/server_skeleton.py`) :**
+   - Serveur TCP multi-threadé avec isolation des connexions.
+   - Sécurité par table blanche (`register_method`).
+   - Codes d'erreur normalisés (`METHOD_NOT_FOUND`, `INVALID_ARGS`, `EXECUTION_ERROR`).
+5. **Validation par Tests Automatisés :**
+   - **25 tests automatisés exécutés, 25 réussis (100% PASS) en 2.88s.**
+   - Couverture complète : sérialisation, transport, concurrence (10 clients), timeouts, erreurs, intégration.
+6. **Documentation :**
+   - Rapport détaillé dans [`docs/phase_02_report.md`](docs/phase_02_report.md).
+
+---
+
+## 0.1 HISTORIQUE PHASE 01 (FONDATION & ARCHITECTURE - VALIDÉE)
+
+- Initialisation Git, arborescence, pyproject.toml, requirements.txt, protos/inventory.proto, squelettes de tous les modules.
+- 12 tests validés. Synchronisé sur le dépôt GitHub officiel.
 
 ---
 
