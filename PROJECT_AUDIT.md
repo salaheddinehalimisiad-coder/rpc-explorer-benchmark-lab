@@ -2,7 +2,7 @@
 
 **Dernière mise à jour :** 26 septembre 2026  
 **Auditeur :** Antigravity Agent  
-**Phase active actuelle :** FIN DE PHASE 02 (CUSTOM RPC CORE VALIDÉ — EN ATTENTE VALIDATION POUR PHASE 03)  
+**Phase active actuelle :** FIN DE PHASE 03 (SERVICE MÉTIER IMPLÉMENTÉ — EN ATTENTE VALIDATION POUR PHASE 04)  
 **Historique initial :** Phase 00 réalisée le 25 septembre 2026  
 
 ---
@@ -221,17 +221,22 @@ rest/
 
 ## 12. SERVICE MÉTIER
 
-**STATUT : NON IMPLÉMENTÉ**
+**STATUT : IMPLÉMENTÉ (Phase 03)**
 
-Aucune fonction métier n'existe.
+Toutes les fonctions métier sont opérationnelles dans `business/inventory_service.py` :
 
-Fonctions prévues :
-- `calculate_factorial(n)`
-- `get_product_details(product_id)`
-- `update_stock(item_id, quantity)`
-- `stream_analytics()`
+- ✅ `calculate_factorial(n)` — Itératif, validé, n ∈ [0, 200]
+- ✅ `get_product_details(item_id)` — Catalogue démo 6 produits, copie isolée
+- ✅ `update_stock(item_id, quantity_delta)` — Thread-safe (Lock), validation stock ≥ 0
+- ✅ `stream_analytics(metric_name, num_events)` — Liste JSON sérialisable (pas de vrai streaming RPC)
 
-**État actuel :** Absent
+Thread-safety : `threading.Lock` sur les opérations de modification du stock.
+
+**Intégration RPC vérifiée** : RPCClient → TCP → RPCServer → InventoryService (7 tests d'intégration PASS).
+
+**75 tests automatisés exécutés, 75 réussis (100% PASS) en 3.04s.**
+
+**Documentation** : Rapport dans [`docs/phase_03_report.md`](docs/phase_03_report.md).
 
 ---
 

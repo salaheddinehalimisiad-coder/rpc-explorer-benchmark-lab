@@ -44,14 +44,14 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(service, "update_stock"))
         self.assertTrue(hasattr(service, "stream_analytics"))
 
-        with self.assertRaises(NotImplementedError):
-            service.calculate_factorial(5)
+        # Phase 03 : les méthodes sont maintenant implémentées
+        self.assertEqual(service.calculate_factorial(5), 120)
 
-        with self.assertRaises(NotImplementedError):
-            service.get_product_details("PROD-001")
+        details = service.get_product_details("PROD-001")
+        self.assertEqual(details["item_id"], "PROD-001")
 
-        with self.assertRaises(NotImplementedError):
-            service.update_stock("PROD-001", 10)
+        result = service.update_stock("PROD-001", 1)
+        self.assertIn("new_stock", result)
 
     def test_grpc_layer_imports(self):
         """Vérifie l'importation des squelettes gRPC."""
