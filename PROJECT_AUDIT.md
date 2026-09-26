@@ -134,11 +134,11 @@ SOA_Project/
 - ✅ `update_stock`
 - ✅ `stream_analytics`
 
-### Benchmark
-- ❌ Benchmark Runner
-- ❌ Métriques
-- ❌ Comparaison
-- ❌ Export de résultats
+### Benchmark (Phase 06 — Validé)
+- ✅ Benchmark Runner (`benchmark/benchmark_runner.py`)
+- ✅ Métriques (`benchmark/metrics.py`)
+- ✅ Comparaison (Local vs Custom RPC vs gRPC vs REST)
+- ✅ Export de résultats (dictionnaire, JSON, tableau textuel)
 
 ### Failure Simulation
 - ❌ Injection de latence
@@ -653,11 +653,11 @@ Une fois validée, la Phase 01 consistera à :
 
 ---
 
-**STATUT : PHASE 05 VALIDÉE (REST HTTP/JSON)**
+**STATUT : PHASE 06 VALIDÉE (BENCHMARK & COMPARATIF)**
 
-**PHASE ACTIVE : TRANSITION VERS PHASE 06 — BENCHMARK & COMPARATIF**
+**PHASE ACTIVE : TRANSITION VERS PHASE 07 — FAILURE SIMULATION**
 
-**RÉSULTAT : 133/133 TESTS PASSÉS — AUCUNE RÉGRESSION**
+**RÉSULTAT : 144/144 TESTS PASSÉS — AUCUNE RÉGRESSION**
 
 **ARRÊT STRICT — ATTENTE DE VALIDATION DU RESPONSABLE DU PROJET.**
 

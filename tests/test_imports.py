@@ -103,16 +103,28 @@ class TestImportsAndInterfaces(unittest.TestCase):
         client.close()
 
     def test_benchmark_layer_imports(self):
-        """Vérifie l'importation du banc d'essai comparatif."""
-        from benchmark import BenchmarkRunner
-        from benchmark.adapters import BaseBenchmarkAdapter
+        """Vérifie l'importation et l'interface du banc d'essai comparatif."""
+        from benchmark import (
+            BenchmarkRunner,
+            BenchmarkResult,
+            BaseBenchmarkAdapter,
+            LocalAdapter,
+            CustomRPCAdapter,
+            GRPCAdapter,
+            RESTAdapter,
+        )
 
         runner = BenchmarkRunner()
         self.assertTrue(hasattr(runner, "run_latency_benchmark"))
         self.assertTrue(hasattr(runner, "run_payload_size_comparison"))
+        self.assertTrue(hasattr(runner, "run_serialization_benchmark"))
+        self.assertTrue(hasattr(runner, "run_concurrency_benchmark"))
+        self.assertTrue(hasattr(runner, "run_full_suite"))
 
-        with self.assertRaises(NotImplementedError):
-            runner.run_payload_size_comparison()
+        # En Phase 06, run_payload_size_comparison() est pleinement implémenté
+        payloads = runner.run_payload_size_comparison()
+        self.assertIn("calculate_factorial", payloads)
+        self.assertIn("get_product_details", payloads)
 
     def test_failure_simulator_imports(self):
         """Vérifie l'importation du simulateur de pannes."""
