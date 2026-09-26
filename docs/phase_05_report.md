@@ -3,7 +3,7 @@
 **Date :** 26 septembre 2026  
 **Phase :** 05 — Implémentation REST (HTTP/JSON)  
 **Statut :** PASS  
-**Commit :** *(sera complété après commit)*
+**Commit :** `9b4402b` (vérifié sur origin/main)
 
 ---
 
