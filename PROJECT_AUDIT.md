@@ -106,33 +106,33 @@ SOA_Project/
 
 **TOUTES LES FONCTIONNALITÉS SONT ABSENTES**
 
-### RPC Custom
-- ❌ Serializer
-- ❌ Deserializer
-- ❌ Client Stub
-- ❌ Server Skeleton
-- ❌ Dispatcher
-- ❌ Transport TCP
+### RPC Custom (Phase 02 — Validé)
+- ✅ Serializer (`rpc_core/serializer.py`)
+- ✅ Deserializer (`rpc_core/serializer.py`)
+- ✅ Client Stub (`rpc_core/client_stub.py`)
+- ✅ Server Skeleton (`rpc_core/server_skeleton.py`)
+- ✅ Dispatcher (`rpc_core/server_skeleton.py`)
+- ✅ Transport TCP (`rpc_core/transport.py`)
 
-### gRPC / Protobuf
-- ❌ Fichiers `.proto`
-- ❌ Code généré
-- ❌ Serveur gRPC
-- ❌ Client gRPC
-- ❌ Unary RPC
-- ❌ Streaming
+### gRPC / Protobuf (Phase 04 — Validé)
+- ✅ Fichiers `.proto` (`protos/inventory.proto`)
+- ✅ Code généré (`protos/inventory_pb2.py`, `protos/inventory_pb2_grpc.py`)
+- ✅ Serveur gRPC (`grpc/grpc_server.py`)
+- ✅ Client gRPC (`grpc/grpc_client.py`)
+- ✅ Unary RPC (`CalculateFactorial`, `GetProductDetails`, `UpdateStock`)
+- ✅ Streaming (`StreamAnalytics` Server-Streaming)
 
-### REST
+### REST (Phase 05 — Prévu)
 - ❌ Endpoints
 - ❌ Serveur HTTP
 - ❌ Client REST
 - ❌ Sérialisation JSON
 
-### Service Métier
-- ❌ `calculate_factorial`
-- ❌ `get_product_details`
-- ❌ `update_stock`
-- ❌ `stream_analytics`
+### Service Métier (Phase 03 — Validé)
+- ✅ `calculate_factorial`
+- ✅ `get_product_details`
+- ✅ `update_stock`
+- ✅ `stream_analytics`
 
 ### Benchmark
 - ❌ Benchmark Runner
@@ -653,16 +653,16 @@ Une fois validée, la Phase 01 consistera à :
 
 ---
 
-**STATUT : AUDIT TERMINÉ**
+**STATUT : PHASE 04 VALIDÉE (gRPC & Protobuf)**
 
-**PHASE ACTIVE : PHASE 00 — AUDIT**
+**PHASE ACTIVE : TRANSITION VERS PHASE 05 — REST API**
 
-**RÉSULTAT : PROJET VIERGE — PRÊT POUR PHASE 01**
+**RÉSULTAT : 105/105 TESTS PASSÉS — AUCUNE RÉGRESSION**
 
 **ARRÊT STRICT — ATTENTE DE VALIDATION DU RESPONSABLE DU PROJET.**
 
 ---
 
-*Audit réalisé par : Agent Claude (Opus 4.8)*  
-*Date : 25 septembre 2026*  
+*Audit actualisé par : Assistant Antigravity*  
+*Date : 26 septembre 2026*  
 *Dépôt : C:\Users\halim\OneDrive\Desktop\SOA_Project*

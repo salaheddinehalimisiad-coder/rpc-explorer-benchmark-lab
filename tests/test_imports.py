@@ -54,21 +54,29 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertIn("new_stock", result)
 
     def test_grpc_layer_imports(self):
-        """Vérifie l'importation des squelettes gRPC."""
-        from grpc.grpc_server import InventoryGRPCServer
+        """Vérifie l'importation et l'interface des composants gRPC."""
+        from grpc.grpc_server import InventoryGRPCServer, InventoryServicer
         from grpc.grpc_client import InventoryGRPCClient
+        import grpc
 
-        server = InventoryGRPCServer()
-        client = InventoryGRPCClient()
+        server = InventoryGRPCServer(port=0)
+        client = InventoryGRPCClient(port=59999, timeout=0.5)
 
         self.assertTrue(hasattr(server, "start"))
+        self.assertTrue(hasattr(server, "stop"))
+        self.assertTrue(hasattr(server, "servicer"))
+        self.assertIsInstance(server.servicer, InventoryServicer)
+
         self.assertTrue(hasattr(client, "calculate_factorial"))
+        self.assertTrue(hasattr(client, "get_product_details"))
+        self.assertTrue(hasattr(client, "update_stock"))
+        self.assertTrue(hasattr(client, "stream_analytics"))
+        self.assertTrue(hasattr(client, "close"))
 
-        with self.assertRaises(NotImplementedError):
-            server.start()
-
-        with self.assertRaises(NotImplementedError):
+        # En Phase 04, l'appel sans serveur actif lève une erreur gRPC (canal indisponible)
+        with self.assertRaises(grpc.RpcError):
             client.calculate_factorial(5)
+        client.close()
 
     def test_rest_layer_imports(self):
         """Vérifie l'importation des squelettes REST."""
