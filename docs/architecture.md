@@ -468,33 +468,57 @@ Pour garantir la comparabilité :
 
 ---
 
-## 8. FAILURE SIMULATION
+## 8. FAILURE SIMULATION (PHASE 07 - VALIDÉE)
 
 ### 8.1 Objectif Pédagogique
 
-Démontrer que **RPC ≠ Appel Local** en simulant les pannes typiques des systèmes distribués.
+Démontrer que **RPC ≠ Appel Local** en simulant les pannes typiques des systèmes distribués :
+- Un appel local en mémoire s'exécute immédiatement sans dépendre d'une socket ou d'un réseau.
+- Un appel RPC ou REST traverse un réseau exposé aux déconnexions, timeouts, délais artificiels et corruptions.
 
-### 8.2 Scénarios de Panne
+### 8.2 Architecture des Composants
 
-| Scénario | Description | Observation Attendue |
-|----------|-------------|----------------------|
-| **Latence artificielle** | Injection de 200ms de délai | Augmentation mesurable de la latence |
-| **Timeout** | Serveur ne répond pas dans le délai | Exception `TimeoutError` |
-| **Connection Refused** | Serveur non démarré | Exception `ConnectionRefusedError` |
-| **Server Crash** | Serveur s'arrête pendant l'appel | Exception réseau |
-| **Invalid Request** | Message malformé | Erreur de désérialisation |
-| **Unknown Method** | Méthode non autorisée | Erreur côté dispatcher |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FAILURE SIMULATOR                        │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │     FailureSimulator (Orchestrateur Central)          │  │
+│  │     - Isolation stricte des scénarios (pas de fuite)  │  │
+│  │     - Application des FailureConfig presets           │  │
+│  │     - Réinitialisation propre via reset()             │  │
+│  └──────────────────────────┬────────────────────────────┘  │
+│                             │                               │
+│         ┌───────────────────┼───────────────────┐           │
+│         ▼                   ▼                   ▼           │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
+│  │LatencyInjector│   │NetworkFault  │    │Message       │   │
+│  │              │    │Simulator     │    │Corruptor     │   │
+│  │- delay_ms    │    │- timeout     │    │- bad JSON    │   │
+│  │- enable()    │    │- crash       │    │- bad Protobuf│   │
+│  │- disable()   │    │- reset()     │    │- bit-flip    │   │
+│  └──────────────┘    └──────────────┘    └──────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### 8.3 Implémentation
+### 8.3 Modules Implémentés
 
-#### `failure_simulator/latency_injector.py`
-Injection de latence artificielle configurable
+- **`failure_simulator/latency_injector.py`** : injection de délai artificiel (`delay_ms`) via `time.sleep()`.
+- **`failure_simulator/network_fault.py`** : simulation de timeouts (rétention serveur) et de crashs brutaux (`ConnectionAbortedError`).
+- **`failure_simulator/message_corruptor.py`** : fabrique de requêtes invalides (JSON corrompu, octets Protobuf incompatibles, méthode inconnue).
+- **`failure_simulator/config.py`** : dataclasses et presets standardisés (`nominal`, `latency_50ms`, `latency_200ms`, `timeout_3s`, `server_crash`).
+- **`failure_simulator/simulator.py`** : orchestrateur central avec méthode `apply_pre_execution_hooks()` et statut temps réel.
 
-#### `failure_simulator/timeout_simulator.py`
-Simulation de timeouts côté serveur
+### 8.4 Matrice de Comportement Comparatif
 
-#### `failure_simulator/network_failure.py`
-Simulation de déconnexions réseau
+| Scénario | Appel Local | Custom RPC | gRPC | REST |
+|---|---|---|---|---|
+| **Latence (+50ms)** | Instantané | Latence +53ms | Latence +53ms | Latence +52ms |
+| **Timeout (Client 0.2s, Serveur 1s)** | Impossible | `TimeoutError` (~208ms) | `StatusCode.DEADLINE_EXCEEDED` (~218ms) | `RestClientError` (~217ms) |
+| **Serveur Éteint** | Impossible | `ConnectionError` | `StatusCode.UNAVAILABLE` | `RestClientError` (Conn refused) |
+| **Crash Serveur Brutal** | Impossible | `ConnectionError` | `StatusCode.UNAVAILABLE` | `HTTP 503 SERVER_UNAVAILABLE` |
+| **Message Malformé** | Impossible | `INVALID_REQUEST_FORMAT` | `DecodeError` / `RpcError` | `HTTP 400 Bad Request` |
+| **Méthode Inconnue** | `AttributeError` | `METHOD_NOT_FOUND` | `StatusCode.UNIMPLEMENTED` | `HTTP 404 Not Found` |
 
 ---
 

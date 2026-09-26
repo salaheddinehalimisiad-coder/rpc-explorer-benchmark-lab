@@ -62,16 +62,23 @@ class RPCServer:
     - Renvoyer la réponse cadrée au client
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 5000):
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 5000,
+        failure_simulator: Optional[Any] = None,
+    ):
         """
         Initialise le serveur RPC.
 
         Args:
             host: Adresse d'écoute (par défaut '127.0.0.1').
             port: Port d'écoute (si 0, un port libre sera alloué dynamiquement).
+            failure_simulator: Simulateur d'anomalies optionnel (Phase 07).
         """
         self.host = host
         self.port = port
+        self.failure_simulator = failure_simulator
         self.methods: Dict[str, Callable] = {}
         self.serializer = RPCSerializer()
         self.running = False
@@ -149,10 +156,14 @@ class RPCServer:
             while self.running:
                 try:
                     request_bytes = receive_message(client_socket)
-                except ConnectionClosedError:
+                except (ConnectionClosedError, TransportError):
                     break
-                except TransportError:
-                    break
+
+                if self.failure_simulator is not None:
+                    try:
+                        self.failure_simulator.apply_pre_execution_hooks()
+                    except ConnectionAbortedError:
+                        break
 
                 try:
                     request = self.serializer.deserialize_request(request_bytes)

@@ -1,0 +1,106 @@
+{
+  "latency_experiments": {
+    "delay_0ms": {
+      "Custom RPC": {
+        "count": 30,
+        "mean_ms": 6.465159998818611,
+        "median_ms": 1.8326499994145706,
+        "min_ms": 1.3808000076096505,
+        "max_ms": 24.669300008099526,
+        "errors": 0
+      },
+      "gRPC": {
+        "count": 30,
+        "mean_ms": 1.3216499976503353,
+        "median_ms": 1.2981000036234036,
+        "min_ms": 1.0252999782096595,
+        "max_ms": 1.9426000071689487,
+        "errors": 0
+      },
+      "REST": {
+        "count": 30,
+        "mean_ms": 13.737443336867727,
+        "median_ms": 9.757649997482076,
+        "min_ms": 7.5172000215388834,
+        "max_ms": 28.847900015534833,
+        "errors": 0
+      }
+    },
+    "delay_50ms": {
+      "Custom RPC": {
+        "count": 30,
+        "mean_ms": 60.203263334309064,
+        "median_ms": 54.96599999605678,
+        "min_ms": 53.71420001029037,
+        "max_ms": 75.52459998987615,
+        "errors": 0
+      },
+      "gRPC": {
+        "count": 30,
+        "mean_ms": 54.42463666840922,
+        "median_ms": 54.49475000204984,
+        "min_ms": 53.69179998524487,
+        "max_ms": 55.23080000421032,
+        "errors": 0
+      },
+      "REST": {
+        "count": 30,
+        "mean_ms": 64.61127666795316,
+        "median_ms": 62.43590000667609,
+        "min_ms": 57.113699993351474,
+        "max_ms": 85.45039998716675,
+        "errors": 0
+      }
+    },
+    "delay_100ms": {
+      "Custom RPC": {
+        "count": 30,
+        "mean_ms": 109.50584333234777,
+        "median_ms": 104.93015000247397,
+        "min_ms": 103.94709999673069,
+        "max_ms": 129.2826000135392,
+        "errors": 0
+      },
+      "gRPC": {
+        "count": 30,
+        "mean_ms": 103.94655000030373,
+        "median_ms": 103.97395001200493,
+        "min_ms": 102.47710000840016,
+        "max_ms": 104.84119999455288,
+        "errors": 0
+      },
+      "REST": {
+        "count": 30,
+        "mean_ms": 113.31255666348927,
+        "median_ms": 112.2006999939913,
+        "min_ms": 106.00269999122247,
+        "max_ms": 128.50469999830239,
+        "errors": 0
+      }
+    }
+  },
+  "timeout_experiments": {
+    "Custom RPC": {
+      "status": "TIMEOUT_CAUGHT: TimeoutError",
+      "elapsed_ms": 207.84200000343844
+    },
+    "gRPC": {
+      "status": "GRPC_ERROR: StatusCode.DEADLINE_EXCEEDED",
+      "elapsed_ms": 217.80759998364374
+    },
+    "REST": {
+      "status": "REST_TIMEOUT: RestClientError",
+      "elapsed_ms": 217.4317000026349
+    }
+  },
+  "crash_experiments": {
+    "Custom RPC": "CRASH_CAUGHT: ConnectionError",
+    "gRPC": "GRPC_CRASH: StatusCode.UNAVAILABLE",
+    "REST": "REST_CRASH: HTTP 503 (SERVER_UNAVAILABLE)"
+  },
+  "isolation_experiment": {
+    "baseline_ms": 21.565300005022436,
+    "with_latency_50ms": 68.28579999273643,
+    "restored_nominal_ms": 12.004399992292747
+  }
+}

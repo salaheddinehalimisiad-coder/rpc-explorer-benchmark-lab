@@ -135,8 +135,14 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(sim, "simulate_server_down"))
         self.assertTrue(hasattr(sim, "simulate_contract_breaking_change"))
 
+        # En Phase 07, FailureSimulator est activement implemente
+        sim.enable_latency_spike(100.0)
+        self.assertTrue(sim.is_active)
+        self.assertEqual(sim.latency_ms, 100.0)
+
+        # Breaking change est reserve pour la Phase 10
         with self.assertRaises(NotImplementedError):
-            sim.enable_latency_spike()
+            sim.simulate_contract_breaking_change()
 
     def test_under_the_hood_imports(self):
         """Vérifie l'importation du module de traçabilité pédagogique."""

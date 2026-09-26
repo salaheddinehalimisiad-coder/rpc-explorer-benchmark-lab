@@ -9,7 +9,7 @@ Conforme au contrat IDL protos/inventory.proto et au cahier des charges officiel
 import time
 import datetime
 from concurrent import futures
-from typing import Optional, Iterator
+from typing import Optional, Iterator, Any
 
 import grpc
 
@@ -29,22 +29,33 @@ class InventoryServicer(inventory_pb2_grpc.InventoryRPCServiceServicer):
         self,
         service: Optional[InventoryService] = None,
         server_id: str = "grpc_server_01",
+        failure_simulator: Optional[Any] = None,
     ):
         self._service = service if service is not None else InventoryService()
         self.server_id = server_id
+        self.failure_simulator = failure_simulator
 
     @property
     def service(self) -> InventoryService:
         """Accès au service métier sous-jacent."""
         return self._service
 
+    def _check_failure_simulation(self, context: grpc.ServicerContext) -> None:
+        """Applique les hooks d'anomalie si configures."""
+        if self.failure_simulator is not None:
+            try:
+                self.failure_simulator.apply_pre_execution_hooks()
+            except ConnectionAbortedError as crash_err:
+                context.abort(grpc.StatusCode.UNAVAILABLE, f"Server crash: {crash_err}")
+
     def CalculateFactorial(
         self, request: inventory_pb2.FactorialRequest, context: grpc.ServicerContext
     ) -> inventory_pb2.FactorialResponse:
         """
         Calcul de factorielle via gRPC (appel unaire CPU-bound).
-        Gère les contraintes du contrat IDL (int64) et les validations métier.
+        Gere les contraintes du contrat IDL (int64) et les validations metier.
         """
+        self._check_failure_simulation(context)
         n = request.n
         # Validation des bornes métier et de la capacité du type int64 Protobuf
         # 20! = 2_432_902_008_176_640_000 (tient dans int64 signé, max 9.22e18)
@@ -82,6 +93,7 @@ class InventoryServicer(inventory_pb2_grpc.InventoryRPCServiceServicer):
         Renvoie NOT_FOUND si le produit est inconnu.
         """
         item_id = request.item_id
+        self._check_failure_simulation(context)
         if not item_id or not item_id.strip():
             context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -118,6 +130,7 @@ class InventoryServicer(inventory_pb2_grpc.InventoryRPCServiceServicer):
         """
         item_id = request.item_id
         delta = request.quantity_delta
+        self._check_failure_simulation(context)
 
         if not item_id or not item_id.strip():
             context.abort(
@@ -158,6 +171,7 @@ class InventoryServicer(inventory_pb2_grpc.InventoryRPCServiceServicer):
         """
         metric_name = request.metric_name
         count = request.count
+        self._check_failure_simulation(context)
 
         if count <= 0:
             context.abort(
@@ -204,16 +218,22 @@ class InventoryGRPCServer:
         service: Optional[InventoryService] = None,
         max_workers: int = 10,
         server_id: str = "grpc_server_01",
+        failure_simulator: Optional[Any] = None,
     ):
         self.host = host
         self.port = port
         self.service = service if service is not None else InventoryService()
         self.max_workers = max_workers
         self.server_id = server_id
+        self.failure_simulator = failure_simulator
         self.server: Optional[grpc.Server] = None
         self.bound_port: int = 0
         self.is_running: bool = False
-        self._servicer = InventoryServicer(self.service, server_id=self.server_id)
+        self._servicer = InventoryServicer(
+            self.service,
+            server_id=self.server_id,
+            failure_simulator=self.failure_simulator,
+        )
 
     @property
     def servicer(self) -> InventoryServicer:

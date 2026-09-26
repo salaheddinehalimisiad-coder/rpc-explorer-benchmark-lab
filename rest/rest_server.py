@@ -16,7 +16,10 @@ from flask_cors import CORS
 from business.inventory_service import InventoryService
 
 
-def create_app(service: Optional[InventoryService] = None) -> Flask:
+def create_app(
+    service: Optional[InventoryService] = None,
+    failure_simulator: Optional[Any] = None,
+) -> Flask:
     """
     Factory créant et configurant l'application Flask REST.
     Délègue l'exécution métier à l'instance InventoryService injectée.
@@ -27,6 +30,20 @@ def create_app(service: Optional[InventoryService] = None) -> Flask:
     # Injection du service métier
     svc = service if service is not None else InventoryService()
     app.config["INVENTORY_SERVICE"] = svc
+    app.config["FAILURE_SIMULATOR"] = failure_simulator
+
+    @app.before_request
+    def check_failure_simulation():
+        sim = app.config.get("FAILURE_SIMULATOR")
+        if sim is not None:
+            try:
+                sim.apply_pre_execution_hooks()
+            except ConnectionAbortedError as crash_err:
+                return jsonify({
+                    "error": f"Server crash: {crash_err}",
+                    "code": "SERVER_UNAVAILABLE",
+                    "status_code": 503,
+                }), 503
 
     @app.route("/health", methods=["GET"])
     def health():
@@ -243,11 +260,13 @@ class RestServer:
         host: str = "127.0.0.1",
         port: int = 5001,
         service: Optional[InventoryService] = None,
+        failure_simulator: Optional[Any] = None,
     ):
         self.host = host
         self.port = port
         self.service = service if service is not None else InventoryService()
-        self.app = create_app(self.service)
+        self.failure_simulator = failure_simulator
+        self.app = create_app(self.service, failure_simulator=self.failure_simulator)
         self._server = None
         self._thread: Optional[threading.Thread] = None
         self.bound_port: int = port

@@ -25,8 +25,13 @@ class BenchmarkRunner:
     Orchestrateur des campagnes de benchmark comparatives.
     """
 
-    def __init__(self, adapters: Optional[List[BaseBenchmarkAdapter]] = None):
+    def __init__(
+        self,
+        adapters: Optional[List[BaseBenchmarkAdapter]] = None,
+        failure_simulator: Optional[Any] = None,
+    ):
         self.adapters = adapters or []
+        self.failure_simulator = failure_simulator
 
     def run_latency_benchmark(
         self,
@@ -34,11 +39,13 @@ class BenchmarkRunner:
         operation: str = "calculate_factorial",
         iterations: int = 1000,
         warmup_iterations: int = 50,
+        failure_simulator: Optional[Any] = None,
         **kwargs,
     ) -> BenchmarkResult:
         """
         Mesure la latence d'appels répétés pour un adaptateur donné après warm-up.
         """
+        active_sim = failure_simulator if failure_simulator is not None else self.failure_simulator
         # 1. Phase de chauffe (Warm-up)
         for _ in range(warmup_iterations):
             try:
