@@ -3,7 +3,7 @@
 **Date :** 26 septembre 2026  
 **Phase :** 06 — Banc d'Essai Comparatif & Métriques  
 **Statut :** PASS  
-**Commit :** *(sera complété après commit)*
+**Commit :** `93b605d` (vérifié sur origin/main)
 
 ---
 
