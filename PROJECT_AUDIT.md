@@ -122,11 +122,11 @@ SOA_Project/
 - ✅ Unary RPC (`CalculateFactorial`, `GetProductDetails`, `UpdateStock`)
 - ✅ Streaming (`StreamAnalytics` Server-Streaming)
 
-### REST (Phase 05 — Prévu)
-- ❌ Endpoints
-- ❌ Serveur HTTP
-- ❌ Client REST
-- ❌ Sérialisation JSON
+### REST (Phase 05 — Validé)
+- ✅ Endpoints (`/api/factorial`, `/api/products/<id>`, `/api/products/<id>/stock`, `/api/analytics/<metric>`, `/health`)
+- ✅ Serveur HTTP (`rest/rest_server.py`)
+- ✅ Client REST (`rest/rest_client.py`)
+- ✅ Sérialisation JSON (`Flask.jsonify`, `requests`)
 
 ### Service Métier (Phase 03 — Validé)
 - ✅ `calculate_factorial`
@@ -653,11 +653,11 @@ Une fois validée, la Phase 01 consistera à :
 
 ---
 
-**STATUT : PHASE 04 VALIDÉE (gRPC & Protobuf)**
+**STATUT : PHASE 05 VALIDÉE (REST HTTP/JSON)**
 
-**PHASE ACTIVE : TRANSITION VERS PHASE 05 — REST API**
+**PHASE ACTIVE : TRANSITION VERS PHASE 06 — BENCHMARK & COMPARATIF**
 
-**RÉSULTAT : 105/105 TESTS PASSÉS — AUCUNE RÉGRESSION**
+**RÉSULTAT : 133/133 TESTS PASSÉS — AUCUNE RÉGRESSION**
 
 **ARRÊT STRICT — ATTENTE DE VALIDATION DU RESPONSABLE DU PROJET.**
 

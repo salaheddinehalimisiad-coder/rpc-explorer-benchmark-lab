@@ -79,21 +79,28 @@ class TestImportsAndInterfaces(unittest.TestCase):
         client.close()
 
     def test_rest_layer_imports(self):
-        """Vérifie l'importation des squelettes REST."""
-        from rest.rest_server import RestServer
-        from rest.rest_client import RestClient
+        """Vérifie l'importation et l'interface des composants REST."""
+        from rest.rest_server import RestServer, create_app
+        from rest.rest_client import RestClient, RestClientError
 
-        server = RestServer()
-        client = RestClient()
+        server = RestServer(port=0)
+        client = RestClient(base_url="http://127.0.0.1:59998", timeout=0.5)
 
         self.assertTrue(hasattr(server, "start"))
+        self.assertTrue(hasattr(server, "stop"))
+        self.assertTrue(hasattr(server, "app"))
+
         self.assertTrue(hasattr(client, "calculate_factorial"))
+        self.assertTrue(hasattr(client, "get_product_details"))
+        self.assertTrue(hasattr(client, "update_stock"))
+        self.assertTrue(hasattr(client, "stream_analytics"))
+        self.assertTrue(hasattr(client, "health"))
+        self.assertTrue(hasattr(client, "close"))
 
-        with self.assertRaises(NotImplementedError):
-            server.start()
-
-        with self.assertRaises(NotImplementedError):
+        # En Phase 05, l'appel sans serveur actif lève RestClientError
+        with self.assertRaises(RestClientError):
             client.calculate_factorial(5)
+        client.close()
 
     def test_benchmark_layer_imports(self):
         """Vérifie l'importation du banc d'essai comparatif."""

@@ -2,7 +2,10 @@
 Package REST Implementation
 
 Contient les composants de l'API HTTP/REST (Flask) pour les besoins comparatifs du laboratoire.
-STATUT: SQUELETTE — Implémentation prévue en Phase 05.
+Expose le serveur REST, le client REST et les exceptions associées.
 """
 
-__all__ = ["rest_server", "rest_client"]
+from .rest_server import RestServer, create_app
+from .rest_client import RestClient, RestClientError
+
+__all__ = ["RestServer", "RestClient", "RestClientError", "create_app"]
