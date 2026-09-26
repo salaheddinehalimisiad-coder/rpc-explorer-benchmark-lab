@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package inventory;
+
+// Service Métier Distribué conforme au cahier des charges officiel
+// Phase 01: Définition du contrat d'interface (IDL)
+// Phase 04: Génération de code et implémentation serveur/client
+
+service InventoryRPCService {
+    // Calcul de factorielle (appel unaire CPU-bound)
+    rpc CalculateFactorial (FactorialRequest) returns (FactorialResponse);
+
+    // Consultation détails produit (appel unaire)
+    rpc GetProductDetails (ProductRequest) returns (ProductResponse);
+
+    // Mise à jour de stock (appel unaire mutation)
+    rpc UpdateStock (UpdateStockRequest) returns (ProductResponse);
+
+    // Flux d'analyses et télémétrie en temps réel (Server Streaming)
+    rpc StreamAnalytics (AnalyticsRequest) returns (stream AnalyticsResponse);
+}
+
+message FactorialRequest {
+    int32 n = 1;
+}
+
+message FactorialResponse {
+    int64 result = 1;
+    double execution_time_ms = 2;
+}
+
+message ProductRequest {
+    string item_id = 1;
+}
+
+message ProductResponse {
+    string item_id = 1;
+    string name = 2;
+    int32 quantity = 3;
+    double unit_price = 4;
+    string category = 5;
+    bool success = 6;
+    string message = 7;
+}
+
+message UpdateStockRequest {
+    string item_id = 1;
+    int32 quantity_delta = 2;
+}
+
+message AnalyticsRequest {
+    string metric_name = 1;
+    int32 count = 2;
+}
+
+message AnalyticsResponse {
+    string metric_name = 1;
+    double value = 2;
+    int64 timestamp = 3;
+    string server_id = 4;
+}
