@@ -11,6 +11,8 @@ Le stub permet d'appeler des méthodes distantes comme si elles étaient locales
 """
 
 import socket
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Optional, Dict
 from .serializer import RPCSerializer
 from .transport import send_message, receive_message, TransportError, ConnectionClosedError
@@ -49,7 +51,14 @@ class RPCClient:
         NETWORK -> SERVER
     """
 
-    def __init__(self, host: str = "localhost", port: int = 5000, timeout: float = 5.0):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 5000,
+        timeout: float = 5.0,
+        persistent: bool = False,
+        tracer: Optional[Any] = None,
+    ):
         """
         Initialise le client RPC.
 
@@ -57,11 +66,25 @@ class RPCClient:
             host: Adresse d'hôte du serveur RPC.
             port: Port d'écoute du serveur RPC.
             timeout: Timeout réseau en secondes pour la connexion et la réponse.
+            persistent: Si True, une seule connexion TCP est réutilisée pour tous les
+                appels (comme le fait gRPC avec son canal HTTP/2). Si False (défaut),
+                chaque appel ouvre puis ferme sa propre connexion TCP : c'est plus
+                simple à comprendre mais on paie la poignée de main TCP à chaque appel.
+            tracer: RPCTracer optionnel (mode "Sous le capot").
         """
         self.host = host
         self.port = port
         self.timeout = timeout
+        self.persistent = persistent
+        self.tracer = tracer
         self.serializer = RPCSerializer()
+        self._sock: Optional[socket.socket] = None
+        self._lock = threading.Lock()
+        self._executor: Optional[ThreadPoolExecutor] = None
+
+    def _trace(self, step: str, call_id: Optional[str], **details):
+        if self.tracer is not None:
+            self.tracer.record_step(step, details, call_id=call_id, side="client")
 
     def connect(self) -> socket.socket:
         """
@@ -104,11 +127,32 @@ class RPCClient:
             ConnectionError: Si la connexion échoue ou est coupée.
             TimeoutError: Si le serveur ne répond pas dans le délai imparti.
         """
+        if self.persistent:
+            with self._lock:
+                if self._sock is None:
+                    self._sock = self.connect()
+                try:
+                    return self._exchange(self._sock, request_data)
+                except Exception:
+                    # Connexion dans un état inconnu : on la jette, la prochaine
+                    # tentative en rouvrira une neuve.
+                    self._close_socket()
+                    raise
+
         sock = self.connect()
         try:
+            return self._exchange(sock, request_data)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+    def _exchange(self, sock: socket.socket, request_data: bytes) -> bytes:
+        """Un aller-retour requête/réponse sur une socket déjà connectée."""
+        try:
             send_message(sock, request_data)
-            response_data = receive_message(sock)
-            return response_data
+            return receive_message(sock)
         except (socket.timeout, TimeoutError) as err:
             raise TimeoutError(
                 f"Timeout ({self.timeout}s) dépassé en attendant la réponse du serveur RPC."
@@ -117,11 +161,6 @@ class RPCClient:
             raise ConnectionError(f"Le serveur RPC a fermé la connexion : {err}") from err
         except TransportError as err:
             raise ConnectionError(f"Erreur de communication réseau : {err}") from err
-        finally:
-            try:
-                sock.close()
-            except OSError:
-                pass
 
     def call(self, method: str, **kwargs) -> Any:
         """
@@ -139,25 +178,49 @@ class RPCClient:
             ConnectionError: Si le transport échoue.
             TimeoutError: Si le timeout expire.
         """
-        # 1. Sérialisation (Marshaling)
+        # 1. Stub : construction du message + sérialisation (Marshaling)
         req_bytes = self.serializer.serialize_request(method=method, args=kwargs)
+        call_id = None
+        if self.tracer is not None:
+            call_id = self.serializer.deserialize_request(req_bytes)["id"]
+            self._trace("CLIENT_CALL", call_id, code=f"client.{method}({', '.join(f'{k}={v!r}' for k, v in kwargs.items())})")
+            self._trace("STUB_MARSHAL + SERIALIZE (JSON)", call_id, method=method, args=kwargs,
+                        payload=req_bytes, taille=f"{len(req_bytes)} octets")
+            self._trace("TRANSPORT_SEND (TCP)", call_id, destination=f"{self.host}:{self.port}",
+                        trame=f"4 octets d'en-tête (longueur={len(req_bytes)}) + {len(req_bytes)} octets de corps",
+                        connexion="persistante" if self.persistent else "nouvelle connexion TCP pour cet appel")
 
         # 2. Transport réseau (Socket TCP)
         resp_bytes = self._send_request(req_bytes)
 
         # 3. Désérialisation (Unmarshaling)
         response = self.serializer.deserialize_response(resp_bytes)
+        self._trace("CLIENT_RECEIVE + UNMARSHAL", call_id, payload=resp_bytes,
+                    taille=f"{len(resp_bytes)} octets")
 
         # 4. Vérification d'erreur applicative
         if response.get("error") is not None:
             err = response["error"]
+            self._trace("RESULT -> exception levée chez l'appelant", call_id, erreur=err.get("code"))
             raise RPCError(
                 code=err.get("code", "RPC_GENERIC_ERROR"),
                 message=err.get("message", "Une erreur distante s'est produite"),
                 data=err.get("data")
             )
 
+        self._trace("RESULT -> rendu à l'appelant", call_id, resultat=response.get("result"))
         return response.get("result")
+
+    def call_async(self, method: str, **kwargs) -> Future:
+        """
+        Appel asynchrone : retourne immédiatement un `Future`.
+
+        L'appelant peut continuer à travailler puis récupérer le résultat avec
+        `future.result()` (qui relance l'éventuelle exception distante).
+        """
+        if self._executor is None:
+            self._executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="rpc-async")
+        return self._executor.submit(self.call, method, **kwargs)
 
     def __getattr__(self, name: str):
         """
@@ -172,6 +235,24 @@ class RPCClient:
 
         return dynamic_stub
 
+    def _close_socket(self):
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
+
     def close(self):
-        """Ferme les ressources associées au client si applicable."""
-        pass
+        """Ferme la connexion persistante éventuelle et le pool asynchrone."""
+        with self._lock:
+            self._close_socket()
+        if self._executor is not None:
+            self._executor.shutdown(wait=False)
+            self._executor = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()

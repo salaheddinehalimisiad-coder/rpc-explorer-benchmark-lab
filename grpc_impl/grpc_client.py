@@ -19,10 +19,18 @@ class InventoryGRPCClient:
     Client gRPC consommant le service distribué via un canal gRPC et stub typé.
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 50051, timeout: float = 10.0):
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 50051,
+        timeout: float = 10.0,
+        interceptors: Optional[list] = None,
+    ):
         self.host = host
         self.port = port
         self.timeout = timeout
+        # Intercepteurs client optionnels (ex: inspecteur "Sous le capot")
+        self.interceptors = list(interceptors or [])
         self.channel: Optional[grpc.Channel] = None
         self.stub: Optional[inventory_pb2_grpc.InventoryRPCServiceStub] = None
 
@@ -30,6 +38,8 @@ class InventoryGRPCClient:
         """Établit le canal gRPC et instancie le stub s'ils ne sont pas déjà actifs."""
         if self.channel is None:
             self.channel = grpc.insecure_channel(f"{self.host}:{self.port}")
+            if self.interceptors:
+                self.channel = grpc.intercept_channel(self.channel, *self.interceptors)
             self.stub = inventory_pb2_grpc.InventoryRPCServiceStub(self.channel)
 
     def _ensure_connected(self):

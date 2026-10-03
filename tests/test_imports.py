@@ -152,8 +152,8 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(tracer, "record_step"))
         self.assertTrue(hasattr(tracer, "display_trace"))
 
-        with self.assertRaises(NotImplementedError):
-            tracer.display_trace()
+        # Phase "Under the Hood" implémentée : une trace vide se formate sans erreur.
+        self.assertIn("aucune étape", tracer.format_trace())
 
     def test_cli_imports(self):
         """Vérifie l'importation du CLI Runner."""

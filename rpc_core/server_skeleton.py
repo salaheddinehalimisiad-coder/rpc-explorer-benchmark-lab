@@ -26,6 +26,7 @@ Architecture:
 import socket
 import threading
 import logging
+import time
 from typing import Dict, Callable, Any, Optional
 from .serializer import RPCSerializer
 from .transport import send_message, receive_message, TransportError, ConnectionClosedError
@@ -67,6 +68,7 @@ class RPCServer:
         host: str = "127.0.0.1",
         port: int = 5000,
         failure_simulator: Optional[Any] = None,
+        tracer: Optional[Any] = None,
     ):
         """
         Initialise le serveur RPC.
@@ -75,15 +77,30 @@ class RPCServer:
             host: Adresse d'écoute (par défaut '127.0.0.1').
             port: Port d'écoute (si 0, un port libre sera alloué dynamiquement).
             failure_simulator: Simulateur d'anomalies optionnel (Phase 07).
+            tracer: RPCTracer optionnel (mode "Sous le capot").
         """
         self.host = host
         self.port = port
         self.failure_simulator = failure_simulator
+        self.tracer = tracer
         self.methods: Dict[str, Callable] = {}
         self.serializer = RPCSerializer()
         self.running = False
         self._server_socket: Optional[socket.socket] = None
         self._listener_thread: Optional[threading.Thread] = None
+        # Connexions clientes actives : fermées par stop() pour qu'un arrêt
+        # du serveur coupe réellement les clients déjà connectés.
+        self._client_sockets: set = set()
+        self._clients_lock = threading.Lock()
+
+    def _trace(self, step: str, call_id: Optional[str], **details):
+        if self.tracer is not None:
+            self.tracer.record_step(step, details, call_id=call_id, side="server")
+
+    def register_service(self, service: Any, method_names: Any) -> None:
+        """Enregistre plusieurs méthodes d'un objet métier dans la table blanche."""
+        for name in method_names:
+            self.register_method(name, getattr(service, name))
 
     def register_method(self, name: str, function: Callable):
         """
@@ -137,6 +154,8 @@ class RPCServer:
                 # Socket fermé lors de l'arrêt
                 break
 
+            with self._clients_lock:
+                self._client_sockets.add(client_sock)
             client_thread = threading.Thread(
                 target=self._handle_client,
                 args=(client_sock, addr),
@@ -167,6 +186,10 @@ class RPCServer:
 
                 try:
                     request = self.serializer.deserialize_request(request_bytes)
+                    self._trace("SERVER_RECEIVE + DESERIALIZE", request.get("id"),
+                                depuis=f"{address[0]}:{address[1]}",
+                                octets_recus=len(request_bytes),
+                                message_decode={"method": request.get("method"), "args": request.get("args")})
                     response_dict = self._dispatch(request)
                 except ValueError as val_err:
                     response_dict = {
@@ -197,11 +220,15 @@ class RPCServer:
                     error=response_dict.get("error"),
                     metadata=response_dict.get("metadata")
                 )
+                self._trace("SERIALIZE_RESPONSE + TRANSPORT_REPLY", response_dict["id"],
+                            payload=resp_bytes, taille=f"{len(resp_bytes)} octets")
                 try:
                     send_message(client_socket, resp_bytes)
                 except TransportError:
                     break
         finally:
+            with self._clients_lock:
+                self._client_sockets.discard(client_socket)
             try:
                 client_socket.close()
             except OSError:
@@ -222,6 +249,8 @@ class RPCServer:
         args = request.get("args", {})
 
         # 1. Contrôle par table blanche
+        self._trace("DISPATCH (table blanche)", req_id, methode=method_name,
+                    autorisee=method_name in self.methods)
         if method_name not in self.methods:
             return {
                 "id": req_id,
@@ -238,7 +267,12 @@ class RPCServer:
 
         # 2. Exécution protégée
         try:
+            t0 = time.perf_counter()
             result = func(**args)
+            self._trace("EXECUTE (fonction métier locale)", req_id,
+                        appel=f"{getattr(func, '__name__', method_name)}(**{args})",
+                        resultat=result,
+                        duree=f"{(time.perf_counter() - t0) * 1000:.3f} ms")
             return {
                 "id": req_id,
                 "result": result,
@@ -273,10 +307,29 @@ class RPCServer:
         self.running = False
         if self._server_socket:
             try:
+                # shutdown() réveille le thread bloqué dans accept() (Linux) ;
+                # sans cela le port resterait occupé après stop().
+                self._server_socket.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
                 self._server_socket.close()
             except OSError:
                 pass
             self._server_socket = None
+
+        with self._clients_lock:
+            active = list(self._client_sockets)
+            self._client_sockets.clear()
+        for sock in active:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sock.close()
+            except OSError:
+                pass
 
         if self._listener_thread and self._listener_thread.is_alive():
             self._listener_thread.join(timeout=1.0)
