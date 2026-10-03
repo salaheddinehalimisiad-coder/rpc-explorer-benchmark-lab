@@ -1,0 +1,2105 @@
+{
+  "environment": {
+    "timestamp_utc": "2026-10-03T10:05:43+00:00",
+    "os": "Linux 6.18.44-fc-v64",
+    "machine": "x86_64",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "logical_cpus": 4,
+    "ram_total_mb": 16094,
+    "python": "3.11.15",
+    "libraries": {
+      "grpcio": "1.84.0",
+      "protobuf": "7.36.2",
+      "flask": "3.1.3",
+      "werkzeug": "3.1.9",
+      "requests": "2.34.2"
+    },
+    "network": "loopback 127.0.0.1 (même machine)"
+  },
+  "config": {
+    "iterations": 2000,
+    "warmup": 200,
+    "repetitions": 3,
+    "concurrency_levels": [
+      1,
+      4,
+      8,
+      16
+    ],
+    "per_worker": 250,
+    "wire_calls": 200,
+    "operations": {
+      "calculate_factorial": {
+        "n": 5
+      },
+      "get_product_details": {
+        "item_id": "PROD-001"
+      },
+      "update_stock": {
+        "item_id": "PROD-002",
+        "quantity_delta": 1
+      },
+      "stream_analytics": {
+        "metric_name": "cpu_usage",
+        "count": 5
+      }
+    },
+    "artificial_latency_ms": 0,
+    "failure_simulator": "désactivé",
+    "werkzeug_request_log": "désactivé (niveau ERROR)",
+    "server_placement": "même processus que le client"
+  },
+  "latency": {
+    "pooled": {
+      "calculate_factorial": {
+        "Local": {
+          "name": "Local",
+          "operation": "calculate_factorial",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 0.005,
+          "throughput_rps": 1201281.53,
+          "latency_ms": {
+            "min": 0.0005,
+            "mean": 0.0007,
+            "median": 0.0006,
+            "max": 0.0759,
+            "std_dev": 0.0012,
+            "p50": 0.0006,
+            "p90": 0.001,
+            "p95": 0.001,
+            "p99": 0.0011
+          }
+        },
+        "Custom RPC": {
+          "name": "Custom RPC",
+          "operation": "calculate_factorial",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 3.4183,
+          "throughput_rps": 1755.28,
+          "latency_ms": {
+            "min": 0.2982,
+            "mean": 0.5686,
+            "median": 0.5197,
+            "max": 17.6687,
+            "std_dev": 0.3173,
+            "p50": 0.5197,
+            "p90": 0.7449,
+            "p95": 0.8397,
+            "p99": 1.3281
+          }
+        },
+        "gRPC": {
+          "name": "gRPC",
+          "operation": "calculate_factorial",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 4.8369,
+          "throughput_rps": 1240.47,
+          "latency_ms": {
+            "min": 0.3272,
+            "mean": 0.8054,
+            "median": 0.7108,
+            "max": 70.9166,
+            "std_dev": 1.0904,
+            "p50": 0.7108,
+            "p90": 1.1645,
+            "p95": 1.3802,
+            "p99": 2.0232
+          }
+        },
+        "REST": {
+          "name": "REST",
+          "operation": "calculate_factorial",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 14.6342,
+          "throughput_rps": 410.0,
+          "latency_ms": {
+            "min": 1.6733,
+            "mean": 2.4379,
+            "median": 2.3227,
+            "max": 18.8938,
+            "std_dev": 0.5781,
+            "p50": 2.3227,
+            "p90": 2.8853,
+            "p95": 3.2214,
+            "p99": 4.4718
+          }
+        }
+      },
+      "get_product_details": {
+        "Local": {
+          "name": "Local",
+          "operation": "get_product_details",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 0.0136,
+          "throughput_rps": 442595.35,
+          "latency_ms": {
+            "min": 0.0016,
+            "mean": 0.0021,
+            "median": 0.0018,
+            "max": 0.5439,
+            "std_dev": 0.0077,
+            "p50": 0.0018,
+            "p90": 0.002,
+            "p95": 0.0022,
+            "p99": 0.0051
+          }
+        },
+        "Custom RPC": {
+          "name": "Custom RPC",
+          "operation": "get_product_details",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 3.8768,
+          "throughput_rps": 1547.67,
+          "latency_ms": {
+            "min": 0.3368,
+            "mean": 0.645,
+            "median": 0.5883,
+            "max": 7.2218,
+            "std_dev": 0.2922,
+            "p50": 0.5883,
+            "p90": 0.8647,
+            "p95": 1.0244,
+            "p99": 1.5413
+          }
+        },
+        "gRPC": {
+          "name": "gRPC",
+          "operation": "get_product_details",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 5.0284,
+          "throughput_rps": 1193.23,
+          "latency_ms": {
+            "min": 0.3577,
+            "mean": 0.8372,
+            "median": 0.7936,
+            "max": 5.64,
+            "std_dev": 0.322,
+            "p50": 0.7936,
+            "p90": 1.1891,
+            "p95": 1.325,
+            "p99": 1.8027
+          }
+        },
+        "REST": {
+          "name": "REST",
+          "operation": "get_product_details",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 13.8532,
+          "throughput_rps": 433.11,
+          "latency_ms": {
+            "min": 1.5416,
+            "mean": 2.3077,
+            "median": 2.1965,
+            "max": 49.1614,
+            "std_dev": 0.7657,
+            "p50": 2.1965,
+            "p90": 2.6935,
+            "p95": 3.1033,
+            "p99": 4.2233
+          }
+        }
+      },
+      "update_stock": {
+        "Local": {
+          "name": "Local",
+          "operation": "update_stock",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 0.0213,
+          "throughput_rps": 282313.54,
+          "latency_ms": {
+            "min": 0.0014,
+            "mean": 0.0033,
+            "median": 0.0021,
+            "max": 0.2071,
+            "std_dev": 0.0052,
+            "p50": 0.0021,
+            "p90": 0.0054,
+            "p95": 0.0098,
+            "p99": 0.0127
+          }
+        },
+        "Custom RPC": {
+          "name": "Custom RPC",
+          "operation": "update_stock",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 3.4228,
+          "throughput_rps": 1752.95,
+          "latency_ms": {
+            "min": 0.3137,
+            "mean": 0.5693,
+            "median": 0.5337,
+            "max": 3.7709,
+            "std_dev": 0.1631,
+            "p50": 0.5337,
+            "p90": 0.7466,
+            "p95": 0.8248,
+            "p99": 1.0526
+          }
+        },
+        "gRPC": {
+          "name": "gRPC",
+          "operation": "update_stock",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 4.9366,
+          "throughput_rps": 1215.41,
+          "latency_ms": {
+            "min": 0.3674,
+            "mean": 0.8217,
+            "median": 0.7787,
+            "max": 5.7805,
+            "std_dev": 0.3097,
+            "p50": 0.7787,
+            "p90": 1.1368,
+            "p95": 1.2765,
+            "p99": 1.8285
+          }
+        },
+        "REST": {
+          "name": "REST",
+          "operation": "update_stock",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 14.837,
+          "throughput_rps": 404.4,
+          "latency_ms": {
+            "min": 1.6598,
+            "mean": 2.4718,
+            "median": 2.326,
+            "max": 15.372,
+            "std_dev": 0.597,
+            "p50": 2.326,
+            "p90": 2.9677,
+            "p95": 3.5354,
+            "p99": 4.7955
+          }
+        }
+      },
+      "stream_analytics": {
+        "Local": {
+          "name": "Local",
+          "operation": "stream_analytics",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 0.0628,
+          "throughput_rps": 95589.21,
+          "latency_ms": {
+            "min": 0.0064,
+            "mean": 0.0103,
+            "median": 0.0086,
+            "max": 0.5511,
+            "std_dev": 0.0095,
+            "p50": 0.0086,
+            "p90": 0.0122,
+            "p95": 0.0142,
+            "p99": 0.029
+          }
+        },
+        "Custom RPC": {
+          "name": "Custom RPC",
+          "operation": "stream_analytics",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 4.1625,
+          "throughput_rps": 1441.44,
+          "latency_ms": {
+            "min": 0.3653,
+            "mean": 0.6926,
+            "median": 0.6511,
+            "max": 7.5661,
+            "std_dev": 0.2518,
+            "p50": 0.6511,
+            "p90": 0.8952,
+            "p95": 1.0033,
+            "p99": 1.5561
+          }
+        },
+        "gRPC": {
+          "name": "gRPC",
+          "operation": "stream_analytics",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 14.6759,
+          "throughput_rps": 408.83,
+          "latency_ms": {
+            "min": 1.6786,
+            "mean": 2.4447,
+            "median": 2.293,
+            "max": 109.6623,
+            "std_dev": 1.8348,
+            "p50": 2.293,
+            "p90": 2.8599,
+            "p95": 3.2112,
+            "p99": 4.4707
+          }
+        },
+        "REST": {
+          "name": "REST",
+          "operation": "stream_analytics",
+          "iterations": 6000,
+          "success_count": 6000,
+          "error_count": 0,
+          "error_rate_percent": 0.0,
+          "concurrency": 1,
+          "warmup_iterations": 600,
+          "total_time_seconds": 14.2779,
+          "throughput_rps": 420.23,
+          "latency_ms": {
+            "min": 1.6732,
+            "mean": 2.3787,
+            "median": 2.2573,
+            "max": 63.472,
+            "std_dev": 1.2279,
+            "p50": 2.2573,
+            "p90": 2.7381,
+            "p95": 3.0004,
+            "p99": 4.1388
+          }
+        }
+      }
+    },
+    "per_repetition": {
+      "calculate_factorial": {
+        "Local": [
+          {
+            "name": "Local",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0022,
+            "throughput_rps": 908077.58,
+            "latency_ms": {
+              "min": 0.0005,
+              "mean": 0.0009,
+              "median": 0.0009,
+              "max": 0.0759,
+              "std_dev": 0.002,
+              "p50": 0.0009,
+              "p90": 0.001,
+              "p95": 0.0011,
+              "p99": 0.0014
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0014,
+            "throughput_rps": 1387337.77,
+            "latency_ms": {
+              "min": 0.0005,
+              "mean": 0.0006,
+              "median": 0.0006,
+              "max": 0.0167,
+              "std_dev": 0.0004,
+              "p50": 0.0006,
+              "p90": 0.0006,
+              "p95": 0.0006,
+              "p99": 0.0009
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0014,
+            "throughput_rps": 1480822.24,
+            "latency_ms": {
+              "min": 0.0005,
+              "mean": 0.0006,
+              "median": 0.0005,
+              "max": 0.0065,
+              "std_dev": 0.0002,
+              "p50": 0.0005,
+              "p90": 0.0006,
+              "p95": 0.0006,
+              "p99": 0.0009
+            }
+          }
+        ],
+        "Custom RPC": [
+          {
+            "name": "Custom RPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.2012,
+            "throughput_rps": 1664.99,
+            "latency_ms": {
+              "min": 0.3168,
+              "mean": 0.5994,
+              "median": 0.5494,
+              "max": 17.6687,
+              "std_dev": 0.4375,
+              "p50": 0.5494,
+              "p90": 0.7739,
+              "p95": 0.8745,
+              "p99": 1.4659
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.0586,
+            "throughput_rps": 1889.32,
+            "latency_ms": {
+              "min": 0.2982,
+              "mean": 0.5282,
+              "median": 0.4782,
+              "max": 6.1132,
+              "std_dev": 0.2457,
+              "p50": 0.4782,
+              "p90": 0.6857,
+              "p95": 0.7668,
+              "p99": 1.1865
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.1585,
+            "throughput_rps": 1726.4,
+            "latency_ms": {
+              "min": 0.3336,
+              "mean": 0.5781,
+              "median": 0.5315,
+              "max": 3.453,
+              "std_dev": 0.2182,
+              "p50": 0.5315,
+              "p90": 0.7684,
+              "p95": 0.8672,
+              "p99": 1.2962
+            }
+          }
+        ],
+        "gRPC": [
+          {
+            "name": "gRPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.8016,
+            "throughput_rps": 1110.1,
+            "latency_ms": {
+              "min": 0.3659,
+              "mean": 0.9,
+              "median": 0.7868,
+              "max": 70.9166,
+              "std_dev": 1.78,
+              "p50": 0.7868,
+              "p90": 1.2588,
+              "p95": 1.4738,
+              "p99": 2.1708
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.6079,
+            "throughput_rps": 1243.85,
+            "latency_ms": {
+              "min": 0.3668,
+              "mean": 0.8032,
+              "median": 0.7356,
+              "max": 7.6812,
+              "std_dev": 0.4465,
+              "p50": 0.7356,
+              "p90": 1.1022,
+              "p95": 1.268,
+              "p99": 2.0422
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.4273,
+            "throughput_rps": 1401.21,
+            "latency_ms": {
+              "min": 0.3272,
+              "mean": 0.7129,
+              "median": 0.6009,
+              "max": 10.3663,
+              "std_dev": 0.428,
+              "p50": 0.6009,
+              "p90": 1.1402,
+              "p95": 1.345,
+              "p99": 1.8682
+            }
+          }
+        ],
+        "REST": [
+          {
+            "name": "REST",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.8827,
+            "throughput_rps": 409.61,
+            "latency_ms": {
+              "min": 1.7492,
+              "mean": 2.4401,
+              "median": 2.3195,
+              "max": 18.8938,
+              "std_dev": 0.7212,
+              "p50": 2.3195,
+              "p90": 2.8326,
+              "p95": 3.1633,
+              "p99": 4.8045
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.9499,
+            "throughput_rps": 404.05,
+            "latency_ms": {
+              "min": 1.6899,
+              "mean": 2.4738,
+              "median": 2.3784,
+              "max": 8.1011,
+              "std_dev": 0.449,
+              "p50": 2.3784,
+              "p90": 2.9629,
+              "p95": 3.2319,
+              "p99": 4.1832
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "calculate_factorial",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.8016,
+            "throughput_rps": 416.53,
+            "latency_ms": {
+              "min": 1.6733,
+              "mean": 2.3997,
+              "median": 2.2776,
+              "max": 9.6465,
+              "std_dev": 0.5278,
+              "p50": 2.2776,
+              "p90": 2.8551,
+              "p95": 3.2991,
+              "p99": 4.5396
+            }
+          }
+        ]
+      },
+      "get_product_details": {
+        "Local": [
+          {
+            "name": "Local",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0048,
+            "throughput_rps": 417492.08,
+            "latency_ms": {
+              "min": 0.0016,
+              "mean": 0.0023,
+              "median": 0.0018,
+              "max": 0.5439,
+              "std_dev": 0.0123,
+              "p50": 0.0018,
+              "p90": 0.0021,
+              "p95": 0.0022,
+              "p99": 0.0047
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0043,
+            "throughput_rps": 469165.17,
+            "latency_ms": {
+              "min": 0.0016,
+              "mean": 0.002,
+              "median": 0.0018,
+              "max": 0.1076,
+              "std_dev": 0.003,
+              "p50": 0.0018,
+              "p90": 0.002,
+              "p95": 0.0022,
+              "p99": 0.0034
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0045,
+            "throughput_rps": 444148.35,
+            "latency_ms": {
+              "min": 0.0016,
+              "mean": 0.0021,
+              "median": 0.0018,
+              "max": 0.1428,
+              "std_dev": 0.0041,
+              "p50": 0.0018,
+              "p90": 0.0021,
+              "p95": 0.0024,
+              "p99": 0.0065
+            }
+          }
+        ],
+        "Custom RPC": [
+          {
+            "name": "Custom RPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.3964,
+            "throughput_rps": 1432.24,
+            "latency_ms": {
+              "min": 0.3394,
+              "mean": 0.697,
+              "median": 0.6274,
+              "max": 5.4094,
+              "std_dev": 0.3543,
+              "p50": 0.6274,
+              "p90": 0.976,
+              "p95": 1.1602,
+              "p99": 1.7591
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.2228,
+            "throughput_rps": 1635.55,
+            "latency_ms": {
+              "min": 0.3416,
+              "mean": 0.6102,
+              "median": 0.5803,
+              "max": 7.2218,
+              "std_dev": 0.2328,
+              "p50": 0.5803,
+              "p90": 0.7859,
+              "p95": 0.8601,
+              "p99": 1.0604
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.2575,
+            "throughput_rps": 1590.4,
+            "latency_ms": {
+              "min": 0.3368,
+              "mean": 0.6277,
+              "median": 0.5675,
+              "max": 6.3069,
+              "std_dev": 0.2688,
+              "p50": 0.5675,
+              "p90": 0.8456,
+              "p95": 1.05,
+              "p99": 1.4512
+            }
+          }
+        ],
+        "gRPC": [
+          {
+            "name": "gRPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.531,
+            "throughput_rps": 1306.37,
+            "latency_ms": {
+              "min": 0.3577,
+              "mean": 0.7647,
+              "median": 0.7204,
+              "max": 3.4773,
+              "std_dev": 0.2609,
+              "p50": 0.7204,
+              "p90": 1.1,
+              "p95": 1.2317,
+              "p99": 1.529
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.7241,
+            "throughput_rps": 1160.03,
+            "latency_ms": {
+              "min": 0.3694,
+              "mean": 0.8613,
+              "median": 0.8232,
+              "max": 3.8095,
+              "std_dev": 0.3012,
+              "p50": 0.8232,
+              "p90": 1.2088,
+              "p95": 1.3449,
+              "p99": 1.8169
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.7733,
+            "throughput_rps": 1127.84,
+            "latency_ms": {
+              "min": 0.3609,
+              "mean": 0.8857,
+              "median": 0.8533,
+              "max": 5.64,
+              "std_dev": 0.3797,
+              "p50": 0.8533,
+              "p90": 1.2288,
+              "p95": 1.3721,
+              "p99": 2.1462
+            }
+          }
+        ],
+        "REST": [
+          {
+            "name": "REST",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.5343,
+            "throughput_rps": 441.08,
+            "latency_ms": {
+              "min": 1.5416,
+              "mean": 2.2661,
+              "median": 2.1686,
+              "max": 49.1614,
+              "std_dev": 1.117,
+              "p50": 2.1686,
+              "p90": 2.5844,
+              "p95": 2.8009,
+              "p99": 4.0412
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.6062,
+            "throughput_rps": 434.19,
+            "latency_ms": {
+              "min": 1.6408,
+              "mean": 2.3019,
+              "median": 2.2216,
+              "max": 12.7444,
+              "std_dev": 0.4647,
+              "p50": 2.2216,
+              "p90": 2.6495,
+              "p95": 2.8634,
+              "p99": 4.0159
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "get_product_details",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.7126,
+            "throughput_rps": 424.39,
+            "latency_ms": {
+              "min": 1.5782,
+              "mean": 2.3551,
+              "median": 2.1982,
+              "max": 6.9697,
+              "std_dev": 0.5401,
+              "p50": 2.1982,
+              "p90": 2.8997,
+              "p95": 3.5611,
+              "p99": 4.4898
+            }
+          }
+        ]
+      },
+      "update_stock": {
+        "Local": [
+          {
+            "name": "Local",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0048,
+            "throughput_rps": 414230.99,
+            "latency_ms": {
+              "min": 0.0018,
+              "mean": 0.0023,
+              "median": 0.0021,
+              "max": 0.0801,
+              "std_dev": 0.0023,
+              "p50": 0.0021,
+              "p90": 0.0023,
+              "p95": 0.0026,
+              "p99": 0.006
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0127,
+            "throughput_rps": 156891.91,
+            "latency_ms": {
+              "min": 0.0024,
+              "mean": 0.0059,
+              "median": 0.0039,
+              "max": 0.2071,
+              "std_dev": 0.0081,
+              "p50": 0.0039,
+              "p90": 0.0103,
+              "p95": 0.0112,
+              "p99": 0.0388
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0037,
+            "throughput_rps": 543905.11,
+            "latency_ms": {
+              "min": 0.0014,
+              "mean": 0.0017,
+              "median": 0.0016,
+              "max": 0.0343,
+              "std_dev": 0.0013,
+              "p50": 0.0016,
+              "p90": 0.0018,
+              "p95": 0.0021,
+              "p99": 0.003
+            }
+          }
+        ],
+        "Custom RPC": [
+          {
+            "name": "Custom RPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.1549,
+            "throughput_rps": 1731.81,
+            "latency_ms": {
+              "min": 0.3327,
+              "mean": 0.5763,
+              "median": 0.5379,
+              "max": 3.7709,
+              "std_dev": 0.1673,
+              "p50": 0.5379,
+              "p90": 0.7736,
+              "p95": 0.8472,
+              "p99": 1.0495
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.1498,
+            "throughput_rps": 1739.39,
+            "latency_ms": {
+              "min": 0.3407,
+              "mean": 0.5737,
+              "median": 0.5415,
+              "max": 2.5714,
+              "std_dev": 0.1474,
+              "p50": 0.5415,
+              "p90": 0.7493,
+              "p95": 0.8307,
+              "p99": 0.9929
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.1181,
+            "throughput_rps": 1788.72,
+            "latency_ms": {
+              "min": 0.3137,
+              "mean": 0.5579,
+              "median": 0.5204,
+              "max": 2.82,
+              "std_dev": 0.173,
+              "p50": 0.5204,
+              "p90": 0.7147,
+              "p95": 0.7872,
+              "p99": 1.1407
+            }
+          }
+        ],
+        "gRPC": [
+          {
+            "name": "gRPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.6639,
+            "throughput_rps": 1201.98,
+            "latency_ms": {
+              "min": 0.3788,
+              "mean": 0.8311,
+              "median": 0.7709,
+              "max": 5.7805,
+              "std_dev": 0.3576,
+              "p50": 0.7709,
+              "p90": 1.1947,
+              "p95": 1.328,
+              "p99": 1.9457
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.7523,
+            "throughput_rps": 1141.33,
+            "latency_ms": {
+              "min": 0.3883,
+              "mean": 0.8744,
+              "median": 0.8433,
+              "max": 4.1948,
+              "std_dev": 0.2601,
+              "p50": 0.8433,
+              "p90": 1.1523,
+              "p95": 1.2741,
+              "p99": 1.6534
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.5204,
+            "throughput_rps": 1315.48,
+            "latency_ms": {
+              "min": 0.3674,
+              "mean": 0.7594,
+              "median": 0.7202,
+              "max": 4.0687,
+              "std_dev": 0.2924,
+              "p50": 0.7202,
+              "p90": 1.036,
+              "p95": 1.1805,
+              "p99": 1.7828
+            }
+          }
+        ],
+        "REST": [
+          {
+            "name": "REST",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.8305,
+            "throughput_rps": 414.03,
+            "latency_ms": {
+              "min": 1.7687,
+              "mean": 2.4143,
+              "median": 2.2985,
+              "max": 9.9855,
+              "std_dev": 0.497,
+              "p50": 2.2985,
+              "p90": 2.7957,
+              "p95": 3.1652,
+              "p99": 4.4922
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 5.3187,
+            "throughput_rps": 376.03,
+            "latency_ms": {
+              "min": 1.8516,
+              "mean": 2.6582,
+              "median": 2.4703,
+              "max": 15.372,
+              "std_dev": 0.7323,
+              "p50": 2.4703,
+              "p90": 3.3671,
+              "p95": 4.0071,
+              "p99": 5.1164
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "update_stock",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.6877,
+            "throughput_rps": 426.65,
+            "latency_ms": {
+              "min": 1.6598,
+              "mean": 2.3428,
+              "median": 2.2383,
+              "max": 7.2369,
+              "std_dev": 0.4812,
+              "p50": 2.2383,
+              "p90": 2.7037,
+              "p95": 3.1019,
+              "p99": 4.4953
+            }
+          }
+        ]
+      },
+      "stream_analytics": {
+        "Local": [
+          {
+            "name": "Local",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0177,
+            "throughput_rps": 113229.76,
+            "latency_ms": {
+              "min": 0.0064,
+              "mean": 0.0087,
+              "median": 0.0082,
+              "max": 0.2746,
+              "std_dev": 0.0086,
+              "p50": 0.0082,
+              "p90": 0.0089,
+              "p95": 0.0095,
+              "p99": 0.0256
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0183,
+            "throughput_rps": 109282.29,
+            "latency_ms": {
+              "min": 0.0077,
+              "mean": 0.0089,
+              "median": 0.0083,
+              "max": 0.0977,
+              "std_dev": 0.0041,
+              "p50": 0.0083,
+              "p90": 0.009,
+              "p95": 0.0116,
+              "p99": 0.0257
+            }
+          },
+          {
+            "name": "Local",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 0.0268,
+            "throughput_rps": 74615.27,
+            "latency_ms": {
+              "min": 0.0097,
+              "mean": 0.0132,
+              "median": 0.0118,
+              "max": 0.5511,
+              "std_dev": 0.0129,
+              "p50": 0.0118,
+              "p90": 0.0142,
+              "p95": 0.0186,
+              "p99": 0.0348
+            }
+          }
+        ],
+        "Custom RPC": [
+          {
+            "name": "Custom RPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.3645,
+            "throughput_rps": 1465.76,
+            "latency_ms": {
+              "min": 0.3973,
+              "mean": 0.6811,
+              "median": 0.6508,
+              "max": 3.0794,
+              "std_dev": 0.1963,
+              "p50": 0.6508,
+              "p90": 0.8854,
+              "p95": 0.9806,
+              "p99": 1.2057
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.4915,
+            "throughput_rps": 1340.96,
+            "latency_ms": {
+              "min": 0.3908,
+              "mean": 0.7445,
+              "median": 0.6956,
+              "max": 7.5661,
+              "std_dev": 0.3105,
+              "p50": 0.6956,
+              "p90": 0.9639,
+              "p95": 1.0903,
+              "p99": 1.8494
+            }
+          },
+          {
+            "name": "Custom RPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 1.3066,
+            "throughput_rps": 1530.74,
+            "latency_ms": {
+              "min": 0.3653,
+              "mean": 0.6522,
+              "median": 0.6151,
+              "max": 3.9596,
+              "std_dev": 0.2254,
+              "p50": 0.6151,
+              "p90": 0.8214,
+              "p95": 0.9021,
+              "p99": 1.3538
+            }
+          }
+        ],
+        "gRPC": [
+          {
+            "name": "gRPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.9145,
+            "throughput_rps": 406.96,
+            "latency_ms": {
+              "min": 1.7201,
+              "mean": 2.4559,
+              "median": 2.3016,
+              "max": 31.319,
+              "std_dev": 0.9049,
+              "p50": 2.3016,
+              "p90": 2.9575,
+              "p95": 3.312,
+              "p99": 4.7406
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 5.0088,
+            "throughput_rps": 399.29,
+            "latency_ms": {
+              "min": 1.7235,
+              "mean": 2.5032,
+              "median": 2.3204,
+              "max": 109.6623,
+              "std_dev": 3.002,
+              "p50": 2.3204,
+              "p90": 2.7707,
+              "p95": 3.0297,
+              "p99": 4.3921
+            }
+          },
+          {
+            "name": "gRPC",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.7526,
+            "throughput_rps": 420.83,
+            "latency_ms": {
+              "min": 1.6786,
+              "mean": 2.3751,
+              "median": 2.2579,
+              "max": 9.2492,
+              "std_dev": 0.5139,
+              "p50": 2.2579,
+              "p90": 2.8358,
+              "p95": 3.2471,
+              "p99": 4.392
+            }
+          }
+        ],
+        "REST": [
+          {
+            "name": "REST",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.7267,
+            "throughput_rps": 423.13,
+            "latency_ms": {
+              "min": 1.6755,
+              "mean": 2.3624,
+              "median": 2.2112,
+              "max": 63.472,
+              "std_dev": 1.5476,
+              "p50": 2.2112,
+              "p90": 2.7264,
+              "p95": 3.0769,
+              "p99": 4.3264
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.8344,
+            "throughput_rps": 413.7,
+            "latency_ms": {
+              "min": 1.6732,
+              "mean": 2.4163,
+              "median": 2.2805,
+              "max": 59.6174,
+              "std_dev": 1.3627,
+              "p50": 2.2805,
+              "p90": 2.7629,
+              "p95": 3.0634,
+              "p99": 4.4383
+            }
+          },
+          {
+            "name": "REST",
+            "operation": "stream_analytics",
+            "iterations": 2000,
+            "success_count": 2000,
+            "error_count": 0,
+            "error_rate_percent": 0.0,
+            "concurrency": 1,
+            "warmup_iterations": 200,
+            "total_time_seconds": 4.7168,
+            "throughput_rps": 424.02,
+            "latency_ms": {
+              "min": 1.6807,
+              "mean": 2.3573,
+              "median": 2.285,
+              "max": 16.483,
+              "std_dev": 0.5197,
+              "p50": 2.285,
+              "p90": 2.7312,
+              "p95": 2.9134,
+              "p99": 3.6858
+            }
+          }
+        ]
+      }
+    }
+  },
+  "concurrency": {
+    "Custom RPC": {
+      "1": {
+        "name": "Custom RPC",
+        "operation": "calculate_factorial",
+        "iterations": 250,
+        "success_count": 250,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 1,
+        "warmup_iterations": 20,
+        "total_time_seconds": 0.1291,
+        "throughput_rps": 1936.01,
+        "latency_ms": {
+          "min": 0.3307,
+          "mean": 0.5139,
+          "median": 0.4905,
+          "max": 1.0187,
+          "std_dev": 0.1185,
+          "p50": 0.4905,
+          "p90": 0.6486,
+          "p95": 0.7468,
+          "p99": 0.9128
+        },
+        "error_types": {}
+      },
+      "4": {
+        "name": "Custom RPC",
+        "operation": "calculate_factorial",
+        "iterations": 1000,
+        "success_count": 1000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 4,
+        "warmup_iterations": 20,
+        "total_time_seconds": 0.6376,
+        "throughput_rps": 1568.4,
+        "latency_ms": {
+          "min": 0.7026,
+          "mean": 2.5301,
+          "median": 2.4623,
+          "max": 6.1259,
+          "std_dev": 0.6531,
+          "p50": 2.4623,
+          "p90": 3.3548,
+          "p95": 3.6246,
+          "p99": 4.5765
+        },
+        "error_types": {}
+      },
+      "8": {
+        "name": "Custom RPC",
+        "operation": "calculate_factorial",
+        "iterations": 2000,
+        "success_count": 2000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 8,
+        "warmup_iterations": 20,
+        "total_time_seconds": 1.3724,
+        "throughput_rps": 1457.25,
+        "latency_ms": {
+          "min": 0.6227,
+          "mean": 5.4512,
+          "median": 5.2597,
+          "max": 15.6907,
+          "std_dev": 1.2224,
+          "p50": 5.2597,
+          "p90": 6.7466,
+          "p95": 7.2696,
+          "p99": 8.5778
+        },
+        "error_types": {}
+      },
+      "16": {
+        "name": "Custom RPC",
+        "operation": "calculate_factorial",
+        "iterations": 4000,
+        "success_count": 4000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 16,
+        "warmup_iterations": 20,
+        "total_time_seconds": 2.6306,
+        "throughput_rps": 1520.58,
+        "latency_ms": {
+          "min": 0.877,
+          "mean": 10.4797,
+          "median": 10.2262,
+          "max": 18.2266,
+          "std_dev": 1.3677,
+          "p50": 10.2262,
+          "p90": 12.137,
+          "p95": 13.0115,
+          "p99": 15.0083
+        },
+        "error_types": {}
+      }
+    },
+    "gRPC": {
+      "1": {
+        "name": "gRPC",
+        "operation": "calculate_factorial",
+        "iterations": 250,
+        "success_count": 250,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 1,
+        "warmup_iterations": 20,
+        "total_time_seconds": 0.177,
+        "throughput_rps": 1412.05,
+        "latency_ms": {
+          "min": 0.4485,
+          "mean": 0.7058,
+          "median": 0.6964,
+          "max": 1.4939,
+          "std_dev": 0.1353,
+          "p50": 0.6964,
+          "p90": 0.8463,
+          "p95": 0.8929,
+          "p99": 1.1383
+        },
+        "error_types": {}
+      },
+      "4": {
+        "name": "gRPC",
+        "operation": "calculate_factorial",
+        "iterations": 1000,
+        "success_count": 1000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 4,
+        "warmup_iterations": 20,
+        "total_time_seconds": 0.5952,
+        "throughput_rps": 1679.97,
+        "latency_ms": {
+          "min": 0.5177,
+          "mean": 2.3602,
+          "median": 2.2632,
+          "max": 8.7369,
+          "std_dev": 0.6283,
+          "p50": 2.2632,
+          "p90": 2.9356,
+          "p95": 3.1529,
+          "p99": 4.3878
+        },
+        "error_types": {}
+      },
+      "8": {
+        "name": "gRPC",
+        "operation": "calculate_factorial",
+        "iterations": 2000,
+        "success_count": 2000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 8,
+        "warmup_iterations": 20,
+        "total_time_seconds": 1.2981,
+        "throughput_rps": 1540.69,
+        "latency_ms": {
+          "min": 0.6611,
+          "mean": 5.165,
+          "median": 5.011,
+          "max": 10.2613,
+          "std_dev": 0.9623,
+          "p50": 5.011,
+          "p90": 6.3912,
+          "p95": 6.8428,
+          "p99": 8.3602
+        },
+        "error_types": {}
+      },
+      "16": {
+        "name": "gRPC",
+        "operation": "calculate_factorial",
+        "iterations": 4000,
+        "success_count": 4000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 16,
+        "warmup_iterations": 20,
+        "total_time_seconds": 2.6554,
+        "throughput_rps": 1506.36,
+        "latency_ms": {
+          "min": 2.0184,
+          "mean": 10.5683,
+          "median": 10.3104,
+          "max": 32.1752,
+          "std_dev": 1.8165,
+          "p50": 10.3104,
+          "p90": 12.1354,
+          "p95": 12.7846,
+          "p99": 16.3613
+        },
+        "error_types": {}
+      }
+    },
+    "REST": {
+      "1": {
+        "name": "REST",
+        "operation": "calculate_factorial",
+        "iterations": 250,
+        "success_count": 250,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 1,
+        "warmup_iterations": 20,
+        "total_time_seconds": 0.5937,
+        "throughput_rps": 421.09,
+        "latency_ms": {
+          "min": 1.7461,
+          "mean": 2.3709,
+          "median": 2.2883,
+          "max": 5.7788,
+          "std_dev": 0.4396,
+          "p50": 2.2883,
+          "p90": 2.7731,
+          "p95": 3.0777,
+          "p99": 3.9262
+        },
+        "error_types": {}
+      },
+      "4": {
+        "name": "REST",
+        "operation": "calculate_factorial",
+        "iterations": 1000,
+        "success_count": 1000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 4,
+        "warmup_iterations": 20,
+        "total_time_seconds": 2.7987,
+        "throughput_rps": 357.31,
+        "latency_ms": {
+          "min": 1.9429,
+          "mean": 11.104,
+          "median": 10.7649,
+          "max": 33.3518,
+          "std_dev": 3.184,
+          "p50": 10.7649,
+          "p90": 15.1017,
+          "p95": 16.8212,
+          "p99": 21.1514
+        },
+        "error_types": {}
+      },
+      "8": {
+        "name": "REST",
+        "operation": "calculate_factorial",
+        "iterations": 2000,
+        "success_count": 2000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 8,
+        "warmup_iterations": 20,
+        "total_time_seconds": 5.4478,
+        "throughput_rps": 367.12,
+        "latency_ms": {
+          "min": 2.5933,
+          "mean": 21.6661,
+          "median": 21.4336,
+          "max": 43.548,
+          "std_dev": 3.4154,
+          "p50": 21.4336,
+          "p90": 25.7536,
+          "p95": 27.5796,
+          "p99": 31.5624
+        },
+        "error_types": {}
+      },
+      "16": {
+        "name": "REST",
+        "operation": "calculate_factorial",
+        "iterations": 4000,
+        "success_count": 4000,
+        "error_count": 0,
+        "error_rate_percent": 0.0,
+        "concurrency": 16,
+        "warmup_iterations": 20,
+        "total_time_seconds": 10.7234,
+        "throughput_rps": 373.02,
+        "latency_ms": {
+          "min": 4.2892,
+          "mean": 42.7238,
+          "median": 42.1974,
+          "max": 70.5328,
+          "std_dev": 5.0839,
+          "p50": 42.1974,
+          "p90": 49.0472,
+          "p95": 51.7996,
+          "p99": 58.4549
+        },
+        "error_types": {}
+      }
+    }
+  },
+  "wire_bytes": {
+    "calculate_factorial": {
+      "Custom RPC": {
+        "first_call": {
+          "request_bytes": 164,
+          "response_bytes": 164,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 164.0,
+          "response_bytes": 164.0,
+          "total_bytes": 328.0,
+          "tcp_connections_opened": 200
+        }
+      },
+      "gRPC": {
+        "first_call": {
+          "request_bytes": 432,
+          "response_bytes": 253,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 60.35,
+          "response_bytes": 75.34,
+          "total_bytes": 135.69,
+          "tcp_connections_opened": 0
+        }
+      },
+      "REST": {
+        "first_call": {
+          "request_bytes": 219,
+          "response_bytes": 260,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 219.0,
+          "response_bytes": 260.47,
+          "total_bytes": 479.47,
+          "tcp_connections_opened": 200
+        }
+      }
+    },
+    "get_product_details": {
+      "Custom RPC": {
+        "first_call": {
+          "request_bytes": 179,
+          "response_bytes": 340,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 179.0,
+          "response_bytes": 340.0,
+          "total_bytes": 519.0,
+          "tcp_connections_opened": 200
+        }
+      },
+      "gRPC": {
+        "first_call": {
+          "request_bytes": 439,
+          "response_bytes": 316,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 68.27,
+          "response_bytes": 138.17,
+          "total_bytes": 206.44,
+          "tcp_connections_opened": 0
+        }
+      },
+      "REST": {
+        "first_call": {
+          "request_bytes": 167,
+          "response_bytes": 366,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 167.0,
+          "response_bytes": 366.0,
+          "total_bytes": 533.0,
+          "tcp_connections_opened": 200
+        }
+      }
+    },
+    "update_stock": {
+      "Custom RPC": {
+        "first_call": {
+          "request_bytes": 193,
+          "response_bytes": 288,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 193.0,
+          "response_bytes": 288.0,
+          "total_bytes": 481.0,
+          "tcp_connections_opened": 200
+        }
+      },
+      "gRPC": {
+        "first_call": {
+          "request_bytes": 435,
+          "response_bytes": 362,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 70.44,
+          "response_bytes": 184.34,
+          "total_bytes": 254.78,
+          "tcp_connections_opened": 0
+        }
+      },
+      "REST": {
+        "first_call": {
+          "request_bytes": 247,
+          "response_bytes": 318,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 247.0,
+          "response_bytes": 318.0,
+          "total_bytes": 565.0,
+          "tcp_connections_opened": 200
+        }
+      }
+    },
+    "stream_analytics": {
+      "Custom RPC": {
+        "first_call": {
+          "request_bytes": 198,
+          "response_bytes": 745,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 198.0,
+          "response_bytes": 745.0,
+          "total_bytes": 943.0,
+          "tcp_connections_opened": 200
+        }
+      },
+      "gRPC": {
+        "first_call": {
+          "request_bytes": 466,
+          "response_bytes": 513,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 61.91,
+          "response_bytes": 337.38,
+          "total_bytes": 399.29,
+          "tcp_connections_opened": 0
+        }
+      },
+      "REST": {
+        "first_call": {
+          "request_bytes": 177,
+          "response_bytes": 777,
+          "tcp_connections_opened": 1
+        },
+        "steady_state_per_call": {
+          "calls_measured": 200,
+          "request_bytes": 177.0,
+          "response_bytes": 777.0,
+          "total_bytes": 954.0,
+          "tcp_connections_opened": 200
+        }
+      }
+    }
+  },
+  "serialization_microbenchmark": {
+    "iterations": 10000,
+    "json": {
+      "encode_us": 1.903,
+      "decode_us": 1.365,
+      "total_us": 3.268
+    },
+    "protobuf": {
+      "encode_us": 0.137,
+      "decode_us": 0.162,
+      "total_us": 0.299
+    }
+  },
+  "serialized_message_sizes": {
+    "calculate_factorial": {
+      "Custom RPC": {
+        "request_bytes": 160,
+        "response_bytes": 120,
+        "total_bytes": 280
+      },
+      "gRPC": {
+        "request_bytes": 2,
+        "response_bytes": 11,
+        "total_bytes": 13
+      },
+      "REST": {
+        "request_bytes": 8,
+        "response_bytes": 50,
+        "total_bytes": 58
+      }
+    },
+    "get_product_details": {
+      "Custom RPC": {
+        "request_bytes": 175,
+        "response_bytes": 284,
+        "total_bytes": 459
+      },
+      "gRPC": {
+        "request_bytes": 10,
+        "response_bytes": 74,
+        "total_bytes": 84
+      },
+      "REST": {
+        "request_bytes": 0,
+        "response_bytes": 167,
+        "total_bytes": 167
+      }
+    },
+    "compactness_gain_percent": {
+      "factorial_grpc_vs_custom_rpc": 95.4,
+      "product_grpc_vs_custom_rpc": 81.7
+    }
+  }
+}
