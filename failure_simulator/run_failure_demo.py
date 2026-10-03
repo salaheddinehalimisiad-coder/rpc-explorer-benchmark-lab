@@ -13,7 +13,7 @@ import time
 import socket
 import json
 import statistics
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Sequence
 
 from failure_simulator import (
     FailureSimulator,
@@ -134,23 +134,26 @@ def measure_rest(sim: FailureSimulator, iterations: int = 50) -> Dict[str, Any]:
     }
 
 
-def run_all_experiments() -> Dict[str, Any]:
-    results: Dict[str, Any] = {}
+DEFAULT_RESULTS_PATH = "failure_simulator/experiment_results.json"
 
+
+def run_latency_experiment(
+    delays: Sequence[float] = (0.0, 50.0, 100.0), iterations: int = 30
+) -> Dict[str, Any]:
+    """Mesure Custom RPC / gRPC / REST pour chaque latence artificielle (ms)."""
     print("=== 1. Mesure de l'impact de la latence artificielle ===")
-    delays = [0.0, 50.0, 100.0]
-    results["latency_experiments"] = {}
+    latency_results: Dict[str, Any] = {}
 
     for delay in delays:
         sim = FailureSimulator()
         if delay > 0:
             sim.enable_latency_spike(delay)
 
-        rpc_res = measure_custom_rpc(sim, iterations=30)
-        grpc_res = measure_grpc(sim, iterations=30)
-        rest_res = measure_rest(sim, iterations=30)
+        rpc_res = measure_custom_rpc(sim, iterations=iterations)
+        grpc_res = measure_grpc(sim, iterations=iterations)
+        rest_res = measure_rest(sim, iterations=iterations)
 
-        results["latency_experiments"][f"delay_{int(delay)}ms"] = {
+        latency_results[f"delay_{int(delay)}ms"] = {
             "Custom RPC": rpc_res,
             "gRPC": grpc_res,
             "REST": rest_res,
@@ -160,17 +163,23 @@ def run_all_experiments() -> Dict[str, Any]:
         print(f"  gRPC:       mean={grpc_res['mean_ms']:.2f}ms, median={grpc_res['median_ms']:.2f}ms")
         print(f"  REST:       mean={rest_res['mean_ms']:.2f}ms, median={rest_res['median_ms']:.2f}ms")
 
+    return latency_results
+
+
+def run_timeout_experiment(
+    failure_delay_seconds: float = 1.0, client_timeout: float = 0.2
+) -> Dict[str, Any]:
+    """Le serveur retient sa réponse ``failure_delay_seconds`` ; le client abandonne après ``client_timeout``."""
     print("\n=== 2. Simulation de Timeout ===")
-    results["timeout_experiments"] = {}
 
     # Custom RPC Timeout
     sim_t = FailureSimulator()
-    sim_t.simulate_timeout(failure_delay_seconds=1.0)
+    sim_t.simulate_timeout(failure_delay_seconds=failure_delay_seconds)
     server_rpc = RPCServer(host="127.0.0.1", port=0, failure_simulator=sim_t)
     server_rpc.register_method("calculate_factorial", InventoryService().calculate_factorial)
     server_rpc.start(threaded=True)
     try:
-        client = RPCClient(host="127.0.0.1", port=server_rpc.port, timeout=0.2)
+        client = RPCClient(host="127.0.0.1", port=server_rpc.port, timeout=client_timeout)
         t0 = time.perf_counter()
         try:
             client.call("calculate_factorial", n=5)
@@ -185,7 +194,7 @@ def run_all_experiments() -> Dict[str, Any]:
     server_grpc = InventoryGRPCServer(port=0, failure_simulator=sim_t)
     gport = server_grpc.start()
     try:
-        gclient = InventoryGRPCClient(port=gport, timeout=0.2)
+        gclient = InventoryGRPCClient(port=gport, timeout=client_timeout)
         t0 = time.perf_counter()
         try:
             gclient.calculate_factorial(5)
@@ -201,7 +210,7 @@ def run_all_experiments() -> Dict[str, Any]:
     server_rest = RestServer(port=0, failure_simulator=sim_t)
     rport = server_rest.start(threaded=True)
     try:
-        rclient = RestClient(base_url=f"http://127.0.0.1:{rport}", timeout=0.2)
+        rclient = RestClient(base_url=f"http://127.0.0.1:{rport}", timeout=client_timeout)
         t0 = time.perf_counter()
         try:
             rclient.calculate_factorial(5)
@@ -213,7 +222,7 @@ def run_all_experiments() -> Dict[str, Any]:
     finally:
         server_rest.stop()
 
-    results["timeout_experiments"] = {
+    timeout_results = {
         "Custom RPC": {"status": rpc_t_status, "elapsed_ms": rpc_t_elapsed},
         "gRPC": {"status": grpc_t_status, "elapsed_ms": grpc_t_elapsed},
         "REST": {"status": rest_t_status, "elapsed_ms": rest_t_elapsed},
@@ -222,8 +231,12 @@ def run_all_experiments() -> Dict[str, Any]:
     print(f"gRPC Timeout:       {grpc_t_status} in {grpc_t_elapsed:.1f}ms")
     print(f"REST Timeout:       {rest_t_status} in {rest_t_elapsed:.1f}ms")
 
+    return timeout_results
+
+
+def run_crash_experiment() -> Dict[str, Any]:
+    """Simule un crash serveur brutal et relève l'erreur observée par chaque client."""
     print("\n=== 3. Simulation de Crash Serveur Brutal ===")
-    results["crash_experiments"] = {}
 
     sim_c = FailureSimulator()
     sim_c.simulate_server_crash()
@@ -270,7 +283,7 @@ def run_all_experiments() -> Dict[str, Any]:
     finally:
         server_rest_c.stop()
 
-    results["crash_experiments"] = {
+    crash_results = {
         "Custom RPC": rpc_c_status,
         "gRPC": grpc_c_status,
         "REST": rest_c_status,
@@ -279,6 +292,11 @@ def run_all_experiments() -> Dict[str, Any]:
     print(f"gRPC Crash:       {grpc_c_status}")
     print(f"REST Crash:       {rest_c_status}")
 
+    return crash_results
+
+
+def run_isolation_experiment(latency_ms: float = 50.0) -> Dict[str, Any]:
+    """Vérifie le retour à la baseline après reset() du simulateur."""
     print("\n=== 4. Test d'Isolation et Reset ===")
     sim_iso = FailureSimulator()
     server_iso = RPCServer(host="127.0.0.1", port=0, failure_simulator=sim_iso)
@@ -290,7 +308,7 @@ def run_all_experiments() -> Dict[str, Any]:
         client.call("calculate_factorial", n=5)
         iso_base = (time.perf_counter() - t0) * 1000.0
 
-        sim_iso.enable_latency_spike(50.0)
+        sim_iso.enable_latency_spike(latency_ms)
         t0 = time.perf_counter()
         client.call("calculate_factorial", n=5)
         iso_spiked = (time.perf_counter() - t0) * 1000.0
@@ -302,15 +320,41 @@ def run_all_experiments() -> Dict[str, Any]:
     finally:
         server_iso.stop()
 
-    results["isolation_experiment"] = {
+    isolation_results = {
         "baseline_ms": iso_base,
-        "with_latency_50ms": iso_spiked,
+        f"with_latency_{int(latency_ms)}ms": iso_spiked,
         "restored_nominal_ms": iso_restored,
     }
     print(f"Isolation: Baseline={iso_base:.2f}ms -> Latency={iso_spiked:.2f}ms -> Restored={iso_restored:.2f}ms")
 
-    with open("failure_simulator/experiment_results.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
+    return isolation_results
+
+
+def run_all_experiments(
+    iterations: int = 30,
+    delays: Sequence[float] = (0.0, 50.0, 100.0),
+    timeout_delay_seconds: float = 1.0,
+    client_timeout: float = 0.2,
+    output_path: Optional[str] = DEFAULT_RESULTS_PATH,
+) -> Dict[str, Any]:
+    """
+    Enchaîne les 4 expériences (latence, timeout, crash, isolation).
+
+    Les valeurs par défaut reproduisent la campagne Phase 07 d'origine.
+    ``output_path=None`` désactive l'écriture du fichier JSON.
+    """
+    results: Dict[str, Any] = {
+        "latency_experiments": run_latency_experiment(delays=delays, iterations=iterations),
+        "timeout_experiments": run_timeout_experiment(
+            failure_delay_seconds=timeout_delay_seconds, client_timeout=client_timeout
+        ),
+        "crash_experiments": run_crash_experiment(),
+        "isolation_experiment": run_isolation_experiment(),
+    }
+
+    if output_path:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
 
     return results
 

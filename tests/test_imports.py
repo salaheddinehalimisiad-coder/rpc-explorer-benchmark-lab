@@ -163,8 +163,13 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(cli, "run_interactive_menu"))
         self.assertTrue(hasattr(cli, "run_benchmark_mode"))
 
-        with self.assertRaises(NotImplementedError):
-            cli.run_interactive_menu()
+        self.assertTrue(hasattr(cli, "run_failure_demo"))
+
+        # Le menu est implémenté : une saisie "0" quitte proprement
+        import io
+        out = io.StringIO()
+        CLIRunner(out=out, input_func=lambda _prompt: "0").run_interactive_menu()
+        self.assertIn("Au revoir.", out.getvalue())
 
 
 if __name__ == "__main__":
