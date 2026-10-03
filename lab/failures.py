@@ -115,9 +115,11 @@ def scenario_server_down() -> List[Dict[str, Any]]:
     rows = []
     tests = {
         "Local": lambda: InventoryService().calculate_factorial(5),
-        "Custom RPC": lambda: RPCClient(port=port, timeout=1).calculate_factorial(n=5),
+        # Timeout large : sous Windows, un refus de connexion peut prendre plus d'une
+        # seconde (le système réessaie avant d'abandonner). On veut voir le REFUS, pas un timeout.
+        "Custom RPC": lambda: RPCClient(host="127.0.0.1", port=port, timeout=5).calculate_factorial(n=5),
         "gRPC": lambda: _grpc_on(port),
-        "REST": lambda: RestClient(base_url=f"http://127.0.0.1:{port}", timeout=1).calculate_factorial(5),
+        "REST": lambda: RestClient(base_url=f"http://127.0.0.1:{port}", timeout=5).calculate_factorial(5),
     }
     for name, fn in tests.items():
         try:
@@ -137,7 +139,7 @@ le code appelant DOIT prévoir ce cas (ConnectionError / UNAVAILABLE / HTTP 503)
 
 def _grpc_on(port: int):
     from grpc_impl.grpc_client import InventoryGRPCClient
-    c = InventoryGRPCClient(port=port, timeout=1)
+    c = InventoryGRPCClient(port=port, timeout=5)
     try:
         return c.calculate_factorial(5)
     finally:
@@ -157,15 +159,18 @@ def scenario_retry_on_restart(restart_after_s: float = 0.5) -> Dict[str, Any]:
         holder.append(srv)
 
     holder: List[RPCServer] = []
-    threading.Thread(target=start_later, daemon=True).start()
+    client = RPCClient(host="127.0.0.1", port=port, timeout=5)
 
-    client = RPCClient(port=port, timeout=1)
+    # Le client naïf appelle pendant que le serveur est arrêté, sans aucune protection.
     try:
         client.calculate_factorial(n=5)
         naive = "succès"
-    except ConnectionError as e:
+    except (ConnectionError, TimeoutError) as e:
         naive = f"CRASH : {type(e).__name__}"
     print(f"Client naïf  : {red(naive)}")
+
+    # Le serveur redémarre maintenant ; il sera de nouveau disponible après restart_after_s.
+    threading.Thread(target=start_later, daemon=True).start()
 
     log = []
     t0 = time.perf_counter()

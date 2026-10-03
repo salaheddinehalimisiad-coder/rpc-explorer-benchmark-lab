@@ -53,7 +53,7 @@ class RPCClient:
 
     def __init__(
         self,
-        host: str = "localhost",
+        host: str = "127.0.0.1",
         port: int = 5000,
         timeout: float = 5.0,
         persistent: bool = False,
