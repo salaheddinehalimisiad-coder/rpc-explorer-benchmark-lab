@@ -14,6 +14,7 @@ import socket
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Optional, Dict, Iterator
+from . import protocol
 from .serializer import RPCSerializer
 from .transport import send_message, receive_message, TransportError, ConnectionClosedError
 
@@ -28,11 +29,19 @@ class RPCError(Exception):
         data: Données de contexte ou traceback additionnel
     """
 
-    def __init__(self, code: str, message: str, data: Optional[Dict[str, Any]] = None):
-        self.code = code
+    def __init__(self, code: str, message: str, data: Optional[Dict[str, Any]] = None,
+                 jsonrpc_code: Optional[int] = None):
+        self.code = code                      # nom symbolique, ex: "METHOD_NOT_FOUND"
+        self.jsonrpc_code = jsonrpc_code      # code numérique JSON-RPC, ex: -32601
         self.message = message
         self.data = data or {}
         super().__init__(f"[{code}] {message}")
+
+    @classmethod
+    def from_error(cls, error: Dict[str, Any]) -> "RPCError":
+        """Construit l'exception à partir du membre "error" d'une réponse JSON-RPC 2.0."""
+        return cls(code=protocol.error_name(error), message=error.get("message", ""),
+                   data=error.get("data"), jsonrpc_code=error.get("code"))
 
 
 class RPCClient:
@@ -162,59 +171,106 @@ class RPCClient:
         except TransportError as err:
             raise ConnectionError(f"Erreur de communication réseau : {err}") from err
 
-    def call(self, method: str, **kwargs) -> Any:
+    @staticmethod
+    def _params(args: tuple, kwargs: Dict[str, Any]):
+        """JSON-RPC 2.0 : paramètres soit positionnels (tableau), soit nommés (objet), pas les deux."""
+        if args and kwargs:
+            raise ValueError("JSON-RPC 2.0 : utilisez soit des paramètres positionnels, soit des paramètres nommés.")
+        return list(args) if args else dict(kwargs)
+
+    def call(self, method: str, *args, **kwargs) -> Any:
         """
-        Exécute un appel distant synchrone.
+        Exécute un appel distant synchrone (requête JSON-RPC 2.0 avec "id").
 
-        Args:
-            method: Nom de la méthode distante.
-            **kwargs: Arguments nommés à transmettre.
-
-        Returns:
-            Any: Résultat renvoyé par la méthode distante.
+            client.call("calculate_factorial", n=5)      # paramètres nommés
+            client.call("calculate_factorial", 5)        # paramètres positionnels
 
         Raises:
-            RPCError: Si le serveur signale une erreur distante.
-            ConnectionError: Si le transport échoue.
-            TimeoutError: Si le timeout expire.
+            RPCError: si le serveur répond par une erreur JSON-RPC.
+            ConnectionError / TimeoutError: si le transport échoue.
         """
-        # 1. Stub : construction du message + sérialisation (Marshaling)
-        req_bytes = self.serializer.serialize_request(method=method, args=kwargs)
+        # 1. Stub : construction du message + sérialisation (Marshalling)
+        params = self._params(args, kwargs)
+        req_bytes = self.serializer.serialize_request(method=method, args=params)
         call_id = None
         if self.tracer is not None:
             call_id = self.serializer.deserialize_request(req_bytes)["id"]
-            self._trace("CLIENT_CALL", call_id, code=f"client.{method}({', '.join(f'{k}={v!r}' for k, v in kwargs.items())})")
-            self._trace("STUB_MARSHAL + SERIALIZE (JSON)", call_id, method=method, args=kwargs,
+            shown = ", ".join([repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()])
+            self._trace("CLIENT_CALL", call_id, code=f"client.{method}({shown})")
+            self._trace("STUB_MARSHAL + SERIALIZE (JSON)", call_id, method=method, params=params,
                         payload=req_bytes, taille=f"{len(req_bytes)} octets")
             self._trace("TRANSPORT_SEND (TCP)", call_id, destination=f"{self.host}:{self.port}",
                         trame=f"4 octets d'en-tête (longueur={len(req_bytes)}) + {len(req_bytes)} octets de corps",
                         connexion="persistante" if self.persistent else "nouvelle connexion TCP pour cet appel")
 
-        # 2. Transport réseau (Socket TCP)
+        # 2. Transport réseau (socket TCP)
         resp_bytes = self._send_request(req_bytes)
 
-        # 3. Désérialisation (Unmarshaling)
+        # 3. Désérialisation (Unmarshalling)
         response = self.serializer.deserialize_response(resp_bytes)
         self._trace("CLIENT_RECEIVE + UNMARSHAL", call_id, payload=resp_bytes,
                     taille=f"{len(resp_bytes)} octets")
 
-        # 4. Vérification d'erreur applicative
-        if response.get("error") is not None:
-            err = response["error"]
-            self._trace("RESULT -> exception levée chez l'appelant", call_id, erreur=err.get("code"))
-            raise RPCError(
-                code=err.get("code", "RPC_GENERIC_ERROR"),
-                message=err.get("message", "Une erreur distante s'est produite"),
-                data=err.get("data")
-            )
+        # 4. Erreur distante -> exception locale
+        if "error" in response:
+            err = RPCError.from_error(response["error"])
+            self._trace("RESULT -> exception levée chez l'appelant", call_id, erreur=err.code)
+            raise err
 
         self._trace("RESULT -> rendu à l'appelant", call_id, resultat=response.get("result"))
         return response.get("result")
 
+    def notify(self, method: str, *args, **kwargs) -> None:
+        """
+        Notification JSON-RPC 2.0 : requête SANS "id". Le serveur l'exécute mais
+        ne répond pas ; l'appelant ne sait donc pas si elle a réussi.
+        """
+        data = protocol.encode(protocol.make_request(method, self._params(args, kwargs), notification=True))
+        if self.persistent:
+            with self._lock:
+                if self._sock is None:
+                    self._sock = self.connect()
+                send_message(self._sock, data)
+            return
+        sock = self.connect()
+        try:
+            send_message(sock, data)
+        finally:
+            sock.close()
+
+    def batch(self, calls: list) -> list:
+        """
+        Lot JSON-RPC 2.0 : plusieurs appels dans UN seul message réseau.
+
+            client.batch([("calculate_factorial", {"n": 5}), ("get_product_details", {"item_id": "PROD-001"})])
+
+        Retourne une liste alignée sur `calls` : le résultat, ou une RPCError (non levée).
+        """
+        requests = [protocol.make_request(m, p if p is not None else {}) for m, p in calls]
+        resp_bytes = self._send_request(protocol.encode(requests))
+        responses = protocol.decode(resp_bytes)
+        if isinstance(responses, dict):  # le serveur a rejeté le lot entier
+            protocol.validate_response(responses)
+            raise RPCError.from_error(responses["error"])
+        by_id = {}
+        for r in responses:
+            protocol.validate_response(r)
+            by_id[r["id"]] = r
+        out = []
+        for req in requests:
+            r = by_id.get(req["id"])
+            if r is None:
+                out.append(RPCError("INTERNAL_ERROR", "Aucune réponse reçue pour cette requête."))
+            elif "error" in r:
+                out.append(RPCError.from_error(r["error"]))
+            else:
+                out.append(r["result"])
+        return out
+
     def stream(self, method: str, **kwargs) -> Iterator[Any]:
         """
         Appel en STREAMING : retourne un itérateur qui produit les éléments au fur
-        et à mesure de leur arrivée (une trame réseau par élément).
+        et à mesure de leur arrivée (une notification "rpc.stream.item" par élément).
 
             for event in client.stream("stream_analytics", metric_name="cpu_usage", num_events=5):
                 print(event)   # affiché dès réception, sans attendre la fin du flux
@@ -223,17 +279,17 @@ class RPCClient:
         arrête d'itérer avant la fin : le serveur s'en aperçoit et s'arrête).
         Le timeout s'applique à l'attente de CHAQUE trame.
         """
-        req_bytes = self.serializer.serialize_request(method=method, args=kwargs,
-                                                      metadata={"stream": True})
+        request = protocol.make_request(protocol.STREAM_METHOD, {"method": method, "params": dict(kwargs)})
+        req_bytes = protocol.encode(request)
         call_id = None
         if self.tracer is not None:
-            call_id = self.serializer.deserialize_request(req_bytes)["id"]
+            call_id = request["id"]
             self._trace("CLIENT_CALL (flux)", call_id, code=f"client.stream({method!r}, {kwargs})")
             self._trace("STUB_MARSHAL + SERIALIZE (JSON)", call_id, payload=req_bytes,
                         taille=f"{len(req_bytes)} octets")
-        return self._stream_frames(req_bytes, call_id)
+        return self._stream_frames(req_bytes, call_id, request["id"])
 
-    def _stream_frames(self, req_bytes: bytes, call_id: Optional[str]) -> Iterator[Any]:
+    def _stream_frames(self, req_bytes: bytes, call_id: Optional[str], req_id: str) -> Iterator[Any]:
         sock = self.connect()
         try:
             try:
@@ -251,27 +307,29 @@ class RPCClient:
                     raise ConnectionError(f"Flux interrompu : le serveur a fermé la connexion ({err}).") from err
                 except TransportError as err:
                     raise ConnectionError(f"Erreur de communication réseau : {err}") from err
-                frame = self.serializer.deserialize_response(frame_bytes)
-                kind = (frame.get("metadata") or {}).get("stream")
-                if frame.get("error") is not None:
-                    err = frame["error"]
-                    self._trace("STREAM_ERROR", call_id, erreur=err.get("code"))
-                    raise RPCError(code=err.get("code", "RPC_GENERIC_ERROR"),
-                                   message=err.get("message", "Erreur distante pendant le flux"),
-                                   data=err.get("data"))
-                if kind == "end":
-                    self._trace("STREAM_END reçu", call_id, nombre=frame["metadata"].get("count"))
-                    return
-                self._trace(f"STREAM_RECEIVE trame n°{frame['metadata'].get('seq')}", call_id,
-                            taille=f"{len(frame_bytes)} octets")
-                yield frame.get("result")
+                frame = protocol.decode(frame_bytes)
+                # Notification "rpc.stream.item" : un élément du flux
+                if isinstance(frame, dict) and frame.get("method") == protocol.STREAM_ITEM_METHOD:
+                    p = frame.get("params") or {}
+                    self._trace(f"STREAM_RECEIVE trame n°{p.get('seq')}", call_id,
+                                taille=f"{len(frame_bytes)} octets")
+                    yield p.get("item")
+                    continue
+                # Sinon : LA réponse finale à la requête rpc.stream
+                protocol.validate_response(frame)
+                if "error" in frame:
+                    err = RPCError.from_error(frame["error"])
+                    self._trace("STREAM_ERROR", call_id, erreur=err.code)
+                    raise err
+                self._trace("STREAM_END reçu", call_id, nombre=(frame.get("result") or {}).get("count"))
+                return
         finally:
             try:
                 sock.close()
             except OSError:
                 pass
 
-    def call_async(self, method: str, **kwargs) -> Future:
+    def call_async(self, method: str, *args, **kwargs) -> Future:
         """
         Appel asynchrone : retourne immédiatement un `Future`.
 
@@ -280,7 +338,7 @@ class RPCClient:
         """
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="rpc-async")
-        return self._executor.submit(self.call, method, **kwargs)
+        return self._executor.submit(self.call, method, *args, **kwargs)
 
     def __getattr__(self, name: str):
         """
@@ -290,8 +348,8 @@ class RPCClient:
         if name.startswith("_"):
             raise AttributeError(f"'{self.__class__.__name__}' n'a pas d'attribut '{name}'")
 
-        def dynamic_stub(**kwargs):
-            return self.call(name, **kwargs)
+        def dynamic_stub(*args, **kwargs):
+            return self.call(name, *args, **kwargs)
 
         return dynamic_stub
 

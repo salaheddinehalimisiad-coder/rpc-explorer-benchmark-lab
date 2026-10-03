@@ -1,190 +1,85 @@
 """
-RPC Serializer
+RPC Serializer (marshalling / unmarshalling) du Custom RPC.
 
-Ce module gère la sérialisation/désérialisation des messages RPC Custom en JSON UTF-8.
+Transforme les appels et les résultats Python en octets JSON au format
+JSON-RPC 2.0, et inversement. Le format lui-même est défini dans protocol.py ;
+cette classe en est la façade utilisée par le stub client et le skeleton serveur.
 
-Format de message:
-- Requête: {"id": str, "method": str, "args": dict, "metadata": dict}
-- Réponse: {"id": str, "result": any, "error": dict|None, "metadata": dict}
-- Erreur:  {"code": str, "message": str, "data": dict}
+    RPCSerializer.serialize_request("calculate_factorial", {"n": 5})
+    -> b'{"jsonrpc":"2.0","method":"calculate_factorial","params":{"n":5},"id":"9f1c..."}'
 """
 
-import json
-import uuid
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional, Union
+
+from . import protocol
 
 
 class RPCSerializer:
-    """
-    Sérialiseur/Désérialiseur pour les messages RPC Custom.
-
-    Responsabilités:
-    - Encoder une requête RPC en JSON bytes UTF-8
-    - Décoder une requête RPC depuis JSON bytes UTF-8
-    - Encoder une réponse RPC en JSON bytes UTF-8
-    - Décoder une réponse RPC depuis JSON bytes UTF-8
-    - Validation rigoureuse des schémas de message
-    """
+    """Encodage / décodage des messages JSON-RPC 2.0 (UTF-8)."""
 
     @staticmethod
-    def serialize_request(method: str, args: Dict[str, Any],
+    def serialize_request(method: str, args: Union[Dict[str, Any], list, None],
                           request_id: Optional[str] = None,
                           metadata: Optional[Dict[str, Any]] = None) -> bytes:
         """
-        Sérialise une requête RPC en JSON bytes.
+        Sérialise une requête JSON-RPC 2.0.
 
         Args:
-            method: Nom de la méthode à appeler.
-            args: Dictionnaire d'arguments.
-            request_id: ID unique de la requête (auto-généré si None).
-            metadata: Métadonnées additionnelles.
-
-        Returns:
-            bytes: Message JSON encodé en UTF-8.
+            method: nom de la méthode distante.
+            args: paramètres nommés (dict) ou positionnels (list).
+            request_id: identifiant de corrélation (UUID généré si absent).
+            metadata: conservé pour compatibilité ; JSON-RPC 2.0 ne prévoit pas
+                de métadonnées, elles ne sont donc pas transmises.
         """
         if not method or not isinstance(method, str):
             raise ValueError("Le paramètre 'method' doit être une chaîne non vide.")
-        if not isinstance(args, dict):
-            raise ValueError("Le paramètre 'args' doit être un dictionnaire.")
-
-        req_id = request_id or str(uuid.uuid4())
-        meta = metadata.copy() if metadata else {}
-        if "timestamp" not in meta:
-            meta["timestamp"] = datetime.now(timezone.utc).isoformat()
-
-        payload = {
-            "id": req_id,
-            "method": method,
-            "args": args,
-            "metadata": meta
-        }
-        return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        if not isinstance(args, (dict, list)):
+            raise ValueError("Le paramètre 'args' doit être un dictionnaire (ou une liste).")
+        return protocol.encode(protocol.make_request(method, args, id=request_id))
 
     @classmethod
     def deserialize_request(cls, data: bytes) -> Dict[str, Any]:
-        """
-        Désérialise une requête RPC depuis JSON bytes.
-
-        Args:
-            data: Message JSON en bytes.
-
-        Returns:
-            dict: Requête validée avec clés: id, method, args, metadata.
-
-        Raises:
-            ValueError: Si le format ou le schéma JSON est invalide.
-        """
-        if not data:
-            raise ValueError("Données reçues vides.")
-
-        try:
-            decoded = json.loads(data.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as err:
-            raise ValueError(f"Erreur de décodage JSON : {err}") from err
-
-        if not cls.validate_request(decoded):
-            raise ValueError(f"Structure de requête RPC invalide : {decoded}")
-
-        return decoded
+        """Octets -> requête JSON-RPC 2.0 validée. Lève ValueError si invalide."""
+        msg = protocol.decode(data)
+        protocol.validate_request(msg)
+        return msg
 
     @staticmethod
-    def serialize_response(request_id: str, result: Any = None,
+    def serialize_response(request_id: Optional[Union[str, int]], result: Any = None,
                            error: Optional[Dict[str, Any]] = None,
                            metadata: Optional[Dict[str, Any]] = None) -> bytes:
         """
-        Sérialise une réponse RPC en JSON bytes.
+        Sérialise une réponse JSON-RPC 2.0.
 
-        Args:
-            request_id: ID de la requête correspondante.
-            result: Résultat de l'exécution (si succès).
-            error: Dictionnaire d'erreur structuré (si échec).
-            metadata: Métadonnées additionnelles.
-
-        Returns:
-            bytes: Message JSON encodé en UTF-8.
+        `error` peut porter un code numérique JSON-RPC ou un nom symbolique
+        ("METHOD_NOT_FOUND", "INVALID_ARGS"…), converti en code numérique.
         """
-        if not request_id or not isinstance(request_id, str):
-            raise ValueError("Le paramètre 'request_id' doit être une chaîne non vide.")
-
-        meta = metadata.copy() if metadata else {}
-        if "timestamp" not in meta:
-            meta["timestamp"] = datetime.now(timezone.utc).isoformat()
-
-        payload = {
-            "id": request_id,
-            "result": result,
-            "error": error,
-            "metadata": meta
-        }
-        return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        if error is not None:
+            msg = protocol.make_error(request_id, error.get("code", "INTERNAL_ERROR"),
+                                      error.get("message", ""), error.get("data"))
+        else:
+            msg = protocol.make_result(request_id, result)
+        return protocol.encode(msg)
 
     @classmethod
     def deserialize_response(cls, data: bytes) -> Dict[str, Any]:
-        """
-        Désérialise une réponse RPC depuis JSON bytes.
+        """Octets -> réponse JSON-RPC 2.0 validée. Lève ValueError si invalide."""
+        msg = protocol.decode(data)
+        protocol.validate_response(msg)
+        return msg
 
-        Args:
-            data: Message JSON en bytes.
-
-        Returns:
-            dict: Réponse validée avec clés: id, result, error, metadata.
-
-        Raises:
-            ValueError: Si le format ou le schéma JSON est invalide.
-        """
-        if not data:
-            raise ValueError("Données reçues vides.")
-
+    @staticmethod
+    def validate_request(request: Any) -> bool:
         try:
-            decoded = json.loads(data.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as err:
-            raise ValueError(f"Erreur de décodage JSON : {err}") from err
-
-        if not cls.validate_response(decoded):
-            raise ValueError(f"Structure de réponse RPC invalide : {decoded}")
-
-        return decoded
+            protocol.validate_request(request)
+            return True
+        except ValueError:
+            return False
 
     @staticmethod
-    def validate_request(request: Dict[str, Any]) -> bool:
-        """
-        Valide la structure d'une requête RPC.
-
-        Critères:
-        - Doit être un dictionnaire
-        - Clés requises: id (str), method (str non vide), args (dict)
-        """
-        if not isinstance(request, dict):
+    def validate_response(response: Any) -> bool:
+        try:
+            protocol.validate_response(response)
+            return True
+        except ValueError:
             return False
-        if not isinstance(request.get("id"), str) or not request["id"]:
-            return False
-        if not isinstance(request.get("method"), str) or not request["method"]:
-            return False
-        if not isinstance(request.get("args"), dict):
-            return False
-        return True
-
-    @staticmethod
-    def validate_response(response: Dict[str, Any]) -> bool:
-        """
-        Valide la structure d'une réponse RPC.
-
-        Critères:
-        - Doit être un dictionnaire
-        - Clés requises: id (str non vide), result, error
-        - error doit être None ou un dictionnaire contenant au minimum code et message
-        """
-        if not isinstance(response, dict):
-            return False
-        if not isinstance(response.get("id"), str) or not response["id"]:
-            return False
-        if "result" not in response or "error" not in response:
-            return False
-        error = response.get("error")
-        if error is not None:
-            if not isinstance(error, dict):
-                return False
-            if "code" not in error or "message" not in error:
-                return False
-        return True

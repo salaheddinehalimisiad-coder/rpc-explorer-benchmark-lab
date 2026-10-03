@@ -113,7 +113,10 @@ class TestFailureScenariosIntegration(unittest.TestCase):
             import json
             resp = json.loads(resp_bytes.decode("utf-8"))
             self.assertIn("error", resp)
-            self.assertEqual(resp["error"]["code"], "INVALID_REQUEST_FORMAT")
+            # JSON-RPC 2.0 : JSON illisible -> "Parse error" (-32700), id null
+            self.assertEqual(resp["error"]["code"], -32700)
+            self.assertEqual(resp["error"]["data"]["name"], "PARSE_ERROR")
+            self.assertIsNone(resp["id"])
             sock.close()
         finally:
             server.stop()

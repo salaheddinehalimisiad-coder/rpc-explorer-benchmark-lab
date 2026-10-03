@@ -34,8 +34,8 @@ class TestRPCSerializer(unittest.TestCase):
         decoded = RPCSerializer.deserialize_request(req_bytes)
         self.assertEqual(decoded["id"], "req-12345")
         self.assertEqual(decoded["method"], "calculate_factorial")
-        self.assertEqual(decoded["args"], {"n": 5})
-        self.assertIn("timestamp", decoded["metadata"])
+        self.assertEqual(decoded["jsonrpc"], "2.0")
+        self.assertEqual(decoded["params"], {"n": 5})
 
     def test_auto_generate_request_id(self):
         """Vérifie la génération automatique d'un UUID si request_id n'est pas fourni."""
@@ -53,7 +53,7 @@ class TestRPCSerializer(unittest.TestCase):
         decoded = RPCSerializer.deserialize_response(resp_bytes)
         self.assertEqual(decoded["id"], "req-12345")
         self.assertEqual(decoded["result"], 120)
-        self.assertIsNone(decoded["error"])
+        self.assertNotIn("error", decoded)  # JSON-RPC 2.0 : "result" OU "error"
 
     def test_serialize_deserialize_response_error(self):
         """Vérifie la sérialisation d'une réponse avec erreur structurée."""
@@ -65,8 +65,9 @@ class TestRPCSerializer(unittest.TestCase):
         )
         decoded = RPCSerializer.deserialize_response(resp_bytes)
         self.assertEqual(decoded["id"], "req-12345")
-        self.assertIsNone(decoded["result"])
-        self.assertEqual(decoded["error"]["code"], "METHOD_NOT_FOUND")
+        self.assertNotIn("result", decoded)
+        self.assertEqual(decoded["error"]["code"], -32601)  # code JSON-RPC 2.0
+        self.assertEqual(decoded["error"]["data"]["name"], "METHOD_NOT_FOUND")
 
     def test_invalid_request_rejection(self):
         """Vérifie le rejet des requêtes malformées."""
@@ -80,7 +81,10 @@ class TestRPCSerializer(unittest.TestCase):
             RPCSerializer.deserialize_request(b"invalid json")
 
         with self.assertRaises(ValueError):
-            RPCSerializer.deserialize_request(b'{"id": "1"}')  # Manque method et args
+            RPCSerializer.deserialize_request(b'{"id": "1"}')  # Manque jsonrpc et method
+
+        with self.assertRaises(ValueError):  # version absente
+            RPCSerializer.deserialize_request(b'{"method": "ping", "id": "1"}')
 
 
 class TestRPCIntegration(unittest.TestCase):

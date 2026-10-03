@@ -49,8 +49,9 @@ class TestMessageCorruptor(unittest.TestCase):
         )
         self.assertEqual(req["id"], "custom_id")
         self.assertEqual(req["method"], "test_unknown")
-        self.assertEqual(req["args"], {})
-        self.assertIn("metadata", req)
+        self.assertEqual(req["params"], {})
+        self.assertEqual(req["jsonrpc"], "2.0")
+        self.assertNotIn("args", req)  # format JSON-RPC 2.0 : "params", pas "args"
 
     def test_create_invalid_schema_request(self):
         """Verifie la structure de la requete au schema invalide."""

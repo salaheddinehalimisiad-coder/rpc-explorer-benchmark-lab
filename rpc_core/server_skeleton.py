@@ -5,38 +5,17 @@ Ce module fournit le serveur RPC Custom avec dispatcher et skeleton.
 
 Le serveur écoute sur un socket TCP et dispatche les requêtes vers les fonctions métier autorisées.
 
-STREAMING (serveur -> client)
-Une méthode enregistrée avec `register_stream()` retourne un itérateur. Si la
-requête porte `metadata.stream = true`, le serveur envoie une trame par élément :
-    {"id", "result": <élément>, "error": null, "metadata": {"stream": "data", "seq": n}}
-puis une trame de fin :
-    {"id", "result": null, "error": null, "metadata": {"stream": "end", "count": N}}
-(ou une trame avec "error" et metadata.stream = "error" si l'itérateur échoue).
-Chaque trame reste une réponse RPC valide : le sérialiseur n'a pas changé.
-
-Architecture:
-    NETWORK
-        ↓
-    TCP SOCKET
-        ↓
-    RECEIVER (avec cadrage par longueur)
-        ↓
-    DESERIALIZER (RPCSerializer)
-        ↓
-    DISPATCHER (validation + vérification table blanche)
-        ↓
-    BUSINESS FUNCTION
-        ↓
-    SERIALIZER (RPCSerializer)
-        ↓
-    RESPONSE
+PROTOCOLE : JSON-RPC 2.0 (voir protocol.py) — requêtes, notifications, lots,
+codes d'erreur normalisés, plus l'extension de flux "rpc.stream".
 """
 
+import inspect
 import socket
 import threading
 import logging
 import time
 from typing import Dict, Callable, Any, Optional
+from . import protocol
 from .serializer import RPCSerializer
 from .transport import send_message, receive_message, TransportError, ConnectionClosedError
 
@@ -190,9 +169,9 @@ class RPCServer:
         """
         Traite une connexion client en continu jusqu'à fermeture.
 
-        Args:
-            client_socket: Socket connectée avec le client.
-            address: Tuple (ip, port) du client.
+        Chaque trame reçue contient UN message JSON-RPC 2.0 : une requête, une
+        notification (sans "id", donc sans réponse), un lot (tableau de
+        requêtes) ou une requête de flux "rpc.stream".
         """
         try:
             while self.running:
@@ -208,50 +187,38 @@ class RPCServer:
                         break
 
                 try:
-                    request = self.serializer.deserialize_request(request_bytes)
-                    self._trace("SERVER_RECEIVE + DESERIALIZE", request.get("id"),
-                                depuis=f"{address[0]}:{address[1]}",
-                                octets_recus=len(request_bytes),
-                                message_decode={"method": request.get("method"), "args": request.get("args")})
-                    if (request.get("metadata") or {}).get("stream"):
-                        if not self._dispatch_stream(client_socket, request):
+                    msg = protocol.decode(request_bytes)
+                except protocol.ProtocolError as err:
+                    if not self._reply(client_socket, protocol.make_error(None, err.name, str(err))):
+                        break
+                    continue
+
+                # Lot (batch) : une réponse par requête, aucune pour les notifications
+                if isinstance(msg, list):
+                    if not msg:
+                        reply = protocol.make_error(None, "INVALID_REQUEST", "Un lot ne peut pas être vide.")
+                    else:
+                        responses = [r for r in (self._process(m, address, len(request_bytes), batch=True)
+                                                 for m in msg) if r is not None]
+                        reply = responses or None
+                    if reply is not None and not self._reply(client_socket, reply):
+                        break
+                    continue
+
+                # Flux (extension rpc.stream)
+                if isinstance(msg, dict) and msg.get("method") == protocol.STREAM_METHOD and "id" in msg:
+                    try:
+                        protocol.validate_request(msg)
+                    except protocol.ProtocolError as err:
+                        if not self._reply(client_socket, protocol.make_error(msg.get("id"), err.name, str(err))):
                             break
                         continue
-                    response_dict = self._dispatch(request)
-                except ValueError as val_err:
-                    response_dict = {
-                        "id": "unknown",
-                        "result": None,
-                        "error": {
-                            "code": "INVALID_REQUEST_FORMAT",
-                            "message": str(val_err),
-                            "data": {}
-                        },
-                        "metadata": {}
-                    }
-                except Exception as ex:
-                    response_dict = {
-                        "id": "unknown",
-                        "result": None,
-                        "error": {
-                            "code": "SERVER_INTERNAL_ERROR",
-                            "message": str(ex),
-                            "data": {}
-                        },
-                        "metadata": {}
-                    }
+                    if not self._dispatch_stream(client_socket, msg, address, len(request_bytes)):
+                        break
+                    continue
 
-                resp_bytes = self.serializer.serialize_response(
-                    request_id=response_dict["id"],
-                    result=response_dict.get("result"),
-                    error=response_dict.get("error"),
-                    metadata=response_dict.get("metadata")
-                )
-                self._trace("SERIALIZE_RESPONSE + TRANSPORT_REPLY", response_dict["id"],
-                            payload=resp_bytes, taille=f"{len(resp_bytes)} octets")
-                try:
-                    send_message(client_socket, resp_bytes)
-                except TransportError:
+                response = self._process(msg, address, len(request_bytes))
+                if response is not None and not self._reply(client_socket, response):
                     break
         finally:
             with self._clients_lock:
@@ -261,132 +228,145 @@ class RPCServer:
             except OSError:
                 pass
 
-    def _send_frame(self, sock, req_id, result=None, error=None, metadata=None) -> bool:
-        data = self.serializer.serialize_response(req_id, result=result, error=error, metadata=metadata)
+    def _reply(self, sock: socket.socket, message: Any) -> bool:
+        """Sérialise et envoie une réponse (ou un lot de réponses). False si la connexion est perdue."""
+        data = protocol.encode(message)
+        trace_id = message.get("id") if isinstance(message, dict) else "lot"
+        self._trace("SERIALIZE_RESPONSE + TRANSPORT_REPLY", trace_id,
+                    payload=data, taille=f"{len(data)} octets")
         try:
             send_message(sock, data)
             return True
         except TransportError:
             return False
 
-    def _dispatch_stream(self, sock: socket.socket, request: Dict[str, Any]) -> bool:
+    def _process(self, msg: Any, address: tuple, size: int, batch: bool = False) -> Optional[Dict[str, Any]]:
+        """Valide puis exécute UNE requête. Retourne la réponse, ou None pour une notification."""
+        try:
+            protocol.validate_request(msg)
+        except protocol.ProtocolError as err:
+            rid = msg.get("id") if isinstance(msg, dict) else None
+            return protocol.make_error(rid if isinstance(rid, (str, int)) else None, err.name, str(err))
+        req_id = msg.get("id")
+        self._trace("SERVER_RECEIVE + DESERIALIZE", req_id,
+                    depuis=f"{address[0]}:{address[1]}", octets_recus=size,
+                    message_decode={"method": msg["method"], "params": msg.get("params")})
+        if batch and msg["method"] == protocol.STREAM_METHOD:
+            return protocol.make_error(req_id, "INVALID_REQUEST", "rpc.stream n'est pas autorisé dans un lot.")
+        response = self._dispatch(msg)
+        if protocol.is_notification(msg):
+            self._trace("NOTIFICATION (aucune réponse)", None, methode=msg["method"])
+            return None
+        return response
+
+    def _check_args(self, func: Callable, args: list, kwargs: Dict[str, Any]) -> Optional[str]:
+        """Vérifie que les paramètres correspondent à la signature AVANT d'exécuter."""
+        try:
+            inspect.signature(func).bind(*args, **kwargs)
+            return None
+        except TypeError as err:
+            return str(err)
+        except ValueError:  # signature introuvable (callable natif) : on laisse l'appel décider
+            return None
+
+    def _dispatch_stream(self, sock: socket.socket, request: Dict[str, Any], address: tuple, size: int) -> bool:
         """
-        Exécute une méthode de streaming et envoie une trame par élément produit.
+        Exécute une méthode de streaming : une notification "rpc.stream.item" par
+        élément produit, puis UNE réponse finale à la requête.
 
         Returns:
             False si la connexion est perdue (le client est parti) : on arrête
             alors l'itérateur au lieu de produire des données pour personne.
         """
         req_id = request["id"]
-        method_name = request["method"]
-        args = request.get("args", {})
+        params = request.get("params") or {}
+        method_name = params.get("method") if isinstance(params, dict) else None
+        inner = params.get("params") if isinstance(params, dict) else None
+        self._trace("SERVER_RECEIVE + DESERIALIZE", req_id, depuis=f"{address[0]}:{address[1]}",
+                    octets_recus=size, message_decode={"method": "rpc.stream", "params": params})
         self._trace("DISPATCH (table blanche des flux)", req_id, methode=method_name,
                     autorisee=method_name in self.stream_methods)
         if method_name not in self.stream_methods:
-            return self._send_frame(sock, req_id, error={
-                "code": "STREAM_NOT_SUPPORTED",
-                "message": f"La méthode '{method_name}' n'est pas disponible en streaming.",
-                "data": {"stream_methods": list(self.stream_methods.keys())},
-            }, metadata={"stream": "error"})
+            return self._reply(sock, protocol.make_error(
+                req_id, "STREAM_NOT_SUPPORTED",
+                f"La méthode '{method_name}' n'est pas disponible en streaming.",
+                {"stream_methods": list(self.stream_methods.keys())}))
+        func = self.stream_methods[method_name]
+        args, kwargs = protocol.split_params(inner)
+        problem = self._check_args(func, args, kwargs)
+        if problem:
+            return self._reply(sock, protocol.make_error(
+                req_id, "INVALID_ARGS", f"Arguments invalides pour '{method_name}' : {problem}",
+                {"provided_args": list(kwargs.keys()) or len(args)}))
         try:
-            iterator = iter(self.stream_methods[method_name](**args))
-        except TypeError as exc:
-            return self._send_frame(sock, req_id, error={
-                "code": "INVALID_ARGS", "message": f"Arguments invalides pour '{method_name}' : {exc}",
-                "data": {"provided_args": list(args.keys())}}, metadata={"stream": "error"})
+            iterator = iter(func(*args, **kwargs))
         except Exception as exc:
-            return self._send_frame(sock, req_id, error={
-                "code": "EXECUTION_ERROR", "message": str(exc),
-                "data": {"exception_type": type(exc).__name__}}, metadata={"stream": "error"})
+            return self._reply(sock, protocol.make_error(
+                req_id, "EXECUTION_ERROR", str(exc), {"exception_type": type(exc).__name__}))
 
         count = 0
         try:
             for item in iterator:
                 count += 1
                 self._trace(f"STREAM_SEND trame n°{count}", req_id, element=item)
-                if not self._send_frame(sock, req_id, result=item,
-                                        metadata={"stream": "data", "seq": count}):
+                try:
+                    send_message(sock, protocol.encode(protocol.make_stream_item(req_id, count, item)))
+                except TransportError:
                     self._trace("STREAM_ABORT (client parti)", req_id, trames_envoyees=count - 1)
                     return False
         except Exception as exc:
-            return self._send_frame(sock, req_id, error={
-                "code": "EXECUTION_ERROR", "message": str(exc),
-                "data": {"exception_type": type(exc).__name__, "items_sent": count}},
-                metadata={"stream": "error"})
+            return self._reply(sock, protocol.make_error(
+                req_id, "EXECUTION_ERROR", str(exc),
+                {"exception_type": type(exc).__name__, "items_sent": count}))
         finally:
             close = getattr(iterator, "close", None)
             if close:
                 close()
         self._trace("STREAM_END", req_id, trames_envoyees=count)
-        return self._send_frame(sock, req_id, metadata={"stream": "end", "count": count})
+        return self._reply(sock, protocol.make_result(req_id, {"count": count}))
 
     def _dispatch(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Dispatche une requête validée vers la fonction métier autorisée.
-
-        Args:
-            request: Dictionnaire de requête avec clés 'id', 'method', 'args'.
+        Dispatche une requête JSON-RPC validée vers la fonction métier autorisée.
 
         Returns:
-            dict: Dictionnaire de réponse avec 'id', 'result', 'error', 'metadata'.
+            dict: réponse JSON-RPC 2.0 ("result" ou "error").
         """
-        req_id = request.get("id", "unknown")
-        method_name = request.get("method")
-        args = request.get("args", {})
+        req_id = request.get("id")
+        method_name = request["method"]
+        args, kwargs = protocol.split_params(request.get("params"))
 
         # 1. Contrôle par table blanche
         self._trace("DISPATCH (table blanche)", req_id, methode=method_name,
                     autorisee=method_name in self.methods)
         if method_name not in self.methods:
-            return {
-                "id": req_id,
-                "result": None,
-                "error": {
-                    "code": "METHOD_NOT_FOUND",
-                    "message": f"La méthode '{method_name}' n'est pas autorisée ou n'existe pas.",
-                    "data": {"available_methods": list(self.methods.keys())}
-                },
-                "metadata": {"status": "ERROR"}
-            }
+            return protocol.make_error(
+                req_id, "METHOD_NOT_FOUND",
+                f"La méthode '{method_name}' n'est pas autorisée ou n'existe pas.",
+                {"available_methods": list(self.methods.keys())})
 
         func = self.methods[method_name]
 
-        # 2. Exécution protégée
+        # 2. Vérification des paramètres par rapport à la signature
+        problem = self._check_args(func, args, kwargs)
+        if problem:
+            return protocol.make_error(
+                req_id, "INVALID_ARGS", f"Arguments invalides pour '{method_name}' : {problem}",
+                {"provided_args": list(kwargs.keys()) if kwargs else len(args)})
+
+        # 3. Exécution protégée
         try:
             t0 = time.perf_counter()
-            result = func(**args)
+            result = func(*args, **kwargs)
+            shown = ", ".join([repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()])
             self._trace("EXECUTE (fonction métier locale)", req_id,
-                        appel=f"{getattr(func, '__name__', method_name)}(**{args})",
+                        appel=f"{getattr(func, '__name__', method_name)}({shown})",
                         resultat=result,
                         duree=f"{(time.perf_counter() - t0) * 1000:.3f} ms")
-            return {
-                "id": req_id,
-                "result": result,
-                "error": None,
-                "metadata": {"status": "SUCCESS"}
-            }
-        except TypeError as type_err:
-            return {
-                "id": req_id,
-                "result": None,
-                "error": {
-                    "code": "INVALID_ARGS",
-                    "message": f"Arguments invalides pour '{method_name}' : {type_err}",
-                    "data": {"provided_args": list(args.keys())}
-                },
-                "metadata": {"status": "ERROR"}
-            }
+            return protocol.make_result(req_id, result)
         except Exception as exc:
-            return {
-                "id": req_id,
-                "result": None,
-                "error": {
-                    "code": "EXECUTION_ERROR",
-                    "message": str(exc),
-                    "data": {"exception_type": type(exc).__name__}
-                },
-                "metadata": {"status": "ERROR"}
-            }
+            return protocol.make_error(req_id, "EXECUTION_ERROR", str(exc),
+                                       {"exception_type": type(exc).__name__})
 
     def stop(self):
         """Arrête le serveur RPC proprement et libère les sockets."""

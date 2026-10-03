@@ -42,10 +42,10 @@ class MessageCorruptor:
     ) -> Dict[str, Any]:
         """Genere un dictionnaire de requete avec une methode non declaree."""
         return {
+            "jsonrpc": "2.0",
             "id": req_id,
             "method": method_name,
-            "args": {},
-            "metadata": {"test": "corruption"}
+            "params": {},
         }
 
     @staticmethod
