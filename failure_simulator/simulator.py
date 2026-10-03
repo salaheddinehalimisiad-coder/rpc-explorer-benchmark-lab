@@ -87,9 +87,18 @@ class FailureSimulator:
 
     def simulate_contract_breaking_change(self) -> None:
         """
-        Placeholder reserve pour la Phase 10 (Contract Evolution / Breaking Changes).
+        Volontairement NON implémenté ici (décision de conception, Phase 10).
+
+        Une rupture de contrat n'est pas une panne réseau que l'on injecte dans un
+        serveur existant : c'est le déploiement d'une AUTRE version du contrat.
+        La démonstration complète se trouve dans le package `contract_evolution`
+        (python main.py --contract-demo).
         """
-        raise NotImplementedError("simulate_contract_breaking_change sera implemente en Phase 10")
+        raise NotImplementedError(
+            "Phase 10 : une rupture de contrat se démontre en déployant un serveur v2 "
+            "(voir contract_evolution / python main.py --contract-demo), "
+            "pas via le FailureSimulator."
+        )
 
     def apply_config(self, config: FailureConfig) -> None:
         """

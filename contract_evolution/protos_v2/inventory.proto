@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+// ============================================================================
+// CONTRAT VERSION 2 (N+1) — utilisé UNIQUEMENT par la démo d'évolution de contrat
+// ============================================================================
+// Même package et même nom de service que la v1 (protos/inventory.proto) :
+// c'est exactement ce qui arrive en production quand l'équipe serveur
+// modifie le .proto et redéploie, alors que des clients v1 tournent encore.
+//
+// Chaque modification ci-dessous est volontaire et annotée :
+//   [COMPATIBLE] l'ancien client continue de fonctionner
+//   [BREAKING]   l'ancien client casse (erreur visible OU bug silencieux)
+// ============================================================================
+
+package inventory;
+
+service InventoryRPCService {
+    rpc CalculateFactorial (FactorialRequest) returns (FactorialResponse);
+    rpc GetProductDetails (ProductRequest) returns (ProductResponse);
+    rpc UpdateStock (UpdateStockRequest) returns (ProductResponse);
+
+    // [BREAKING] RPC renommée : StreamAnalytics -> StreamMetrics.
+    // Le chemin HTTP/2 change (/inventory.InventoryRPCService/StreamMetrics),
+    // un client v1 qui appelle StreamAnalytics reçoit UNIMPLEMENTED.
+    rpc StreamMetrics (AnalyticsRequest) returns (stream AnalyticsResponse);
+}
+
+message FactorialRequest {
+    // [BREAKING] type changé : int32 -> string (même numéro 1).
+    // Sur le fil, un int32 est un VARINT, un string est LEN : les octets
+    // envoyés par un client v1 ne correspondent plus au type attendu.
+    string n = 1;
+}
+
+message FactorialResponse {
+    int64 result = 1;
+    double execution_time_ms = 2;
+}
+
+message ProductRequest {
+    // [COMPATIBLE] champ RENOMMÉ (item_id -> product_id) mais même numéro 1.
+    // Les noms ne voyagent pas sur le réseau : seul le numéro compte.
+    string product_id = 1;
+}
+
+message ProductResponse {
+    string item_id = 1;
+    string name = 2;
+    int32 quantity = 3;
+    double unit_price = 4;
+    string category = 5;
+    bool success = 6;
+    string message = 7;
+    // [COMPATIBLE] nouveaux champs avec de NOUVEAUX numéros :
+    // un client v1 les reçoit mais les ignore (champs inconnus).
+    string currency = 8;
+    string stock_status = 9;
+}
+
+message UpdateStockRequest {
+    string item_id = 1;
+    // [BREAKING] un développeur a "réorganisé" le message : il a inséré
+    // `reason` au numéro 2 et décalé `quantity_delta` au numéro 3.
+    // Un client v1 continue d'envoyer quantity_delta sous le numéro 2...
+    string reason = 2;
+    int32 quantity_delta = 3;
+}
+
+message AnalyticsRequest {
+    string metric_name = 1;
+    int32 count = 2;
+}
+
+message AnalyticsResponse {
+    string metric_name = 1;
+    double value = 2;
+    int64 timestamp = 3;
+    string server_id = 4;
+}

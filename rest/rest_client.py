@@ -34,6 +34,25 @@ class RestClient:
         self.timeout = timeout
         self.session = requests.Session()
 
+    def _request(self, verb: str, url: str, **kwargs) -> requests.Response:
+        """
+        Envoie la requête HTTP et traduit les erreurs réseau en RestClientError :
+        - délai dépassé       -> 504 / TIMEOUT
+        - serveur injoignable -> 503 / CONNECTION_ERROR
+        """
+        try:
+            return self.session.request(verb.upper(), url, **kwargs)
+        except requests.Timeout as exc:
+            raise RestClientError(
+                f"Timeout ({self.timeout}s) dépassé en attendant le serveur REST : {exc}",
+                status_code=504, error_code="TIMEOUT",
+            ) from exc
+        except requests.RequestException as exc:
+            raise RestClientError(
+                f"Échec de connexion au serveur REST : {exc}",
+                status_code=503, error_code="CONNECTION_ERROR",
+            ) from exc
+
     def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
         """Décode la réponse JSON ou lève une exception RestClientError."""
         try:
@@ -58,10 +77,7 @@ class RestClient:
         Retourne la valeur de la factorielle.
         """
         url = f"{self.base_url}/api/factorial"
-        try:
-            resp = self.session.post(url, json={"n": n}, timeout=self.timeout)
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("post", url, json={"n": n}, timeout=self.timeout)
 
         data = self._handle_response(resp)
         return int(data["result"])
@@ -71,10 +87,7 @@ class RestClient:
         Appel POST /api/factorial retournant résultat et temps d'exécution serveur (ms).
         """
         url = f"{self.base_url}/api/factorial"
-        try:
-            resp = self.session.post(url, json={"n": n}, timeout=self.timeout)
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("post", url, json={"n": n}, timeout=self.timeout)
 
         return self._handle_response(resp)
 
@@ -84,10 +97,7 @@ class RestClient:
         Retourne un dictionnaire contenant les attributs du produit.
         """
         url = f"{self.base_url}/api/products/{item_id}"
-        try:
-            resp = self.session.get(url, timeout=self.timeout)
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("get", url, timeout=self.timeout)
 
         return self._handle_response(resp)
 
@@ -97,12 +107,7 @@ class RestClient:
         Retourne les détails de la mutation de stock.
         """
         url = f"{self.base_url}/api/products/{item_id}/stock"
-        try:
-            resp = self.session.post(
-                url, json={"quantity_delta": quantity_delta}, timeout=self.timeout
-            )
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("post", url, json={"quantity_delta": quantity_delta}, timeout=self.timeout)
 
         return self._handle_response(resp)
 
@@ -112,10 +117,7 @@ class RestClient:
         Retourne la liste d'événements de métrique.
         """
         url = f"{self.base_url}/api/analytics/{metric_name}"
-        try:
-            resp = self.session.get(url, params={"count": count}, timeout=self.timeout)
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("get", url, params={"count": count}, timeout=self.timeout)
 
         data = self._handle_response(resp)
         return data.get("events", [])
@@ -123,10 +125,7 @@ class RestClient:
     def health(self) -> Dict[str, Any]:
         """Appel GET /health pour vérifier la disponibilité de l'API."""
         url = f"{self.base_url}/health"
-        try:
-            resp = self.session.get(url, timeout=self.timeout)
-        except requests.RequestException as exc:
-            raise RestClientError(f"Échec de connexion au serveur REST : {exc}", status_code=503, error_code="CONNECTION_ERROR")
+        resp = self._request("get", url, timeout=self.timeout)
 
         return self._handle_response(resp)
 
