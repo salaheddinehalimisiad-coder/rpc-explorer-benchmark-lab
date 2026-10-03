@@ -223,11 +223,26 @@ python grpc/grpc_server.py
 #### Lancer un benchmark comparatif
 ```bash
 python main.py --benchmark --iterations 1000 --protocols custom,grpc,rest
+# Options : --warmup 50, --protocols local,custom,grpc,rest,
+#           --operation get_product_details, --output rapport.json
 ```
+
+Les serveurs Custom RPC, gRPC et REST sont démarrés automatiquement sur
+127.0.0.1 (ports éphémères) dans le même processus, puis arrêtés.
 
 #### Simuler une latence de 200ms
 ```bash
 python main.py --simulate-latency 200
+```
+
+#### Lancer la démonstration complète des pannes
+```bash
+python main.py --simulate-failures --iterations 30 --output resultats.json
+```
+
+#### Menu interactif (appel unitaire, benchmark, pannes)
+```bash
+python main.py --interactive
 ```
 
 ---
@@ -364,7 +379,7 @@ python main.py --simulate-latency 200  # 200ms de latence
 
 ### Timeout
 ```bash
-python main.py --simulate-timeout 5  # Timeout après 5 secondes
+python main.py --simulate-timeout 5 --client-timeout 1.0  # réponse retardée de 5 s, client abandonne après 1 s
 ```
 
 ### Serveur Indisponible
