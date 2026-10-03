@@ -132,13 +132,13 @@ Règle d'or Protobuf : on ne change **jamais** le numéro ni le type d'un champ 
 - `under_the_hood/` — l'observation (traces, décodage Protobuf).
 - `benchmark/`, `failure_simulator/`, `contract_evolution/`, `lab/` — les expériences.
 - `cli/` + `main.py` — l'interface.
-- `tests/` — plus de 200 tests automatiques (`python -m pytest -q`).
+- `tests/` — 246 tests automatiques (`python -m pytest -q`).
 
 ---
 
 ## 8. Scénario de présentation conseillé (≈ 15 min)
 
-Le plus visuel : `python main.py --dashboard` ouvre une page dans le navigateur qui couvre toutes les étapes ci-dessous (onglets *Appel et trajet*, *Flux*, *Benchmark*, *Pannes*, *Contrat*). Les commandes en console restent utiles en secours.
+Le plus visuel : `python main.py --dashboard` ouvre une page dans le navigateur qui couvre toutes les étapes ci-dessous (vues *Appel*, *Flux*, *Mesure*, *Pannes* et *Contrat*, dans le menu de gauche). Dans la vue Appel, les cartes « Par où commencer » lancent chaque démonstration en un clic, et « Comparer les 3 » exécute le même appel sur les trois protocoles. Les commandes en console restent utiles en secours.
 
 1. **Le service** : montrer `business/inventory_service.py` (4 fonctions simples).
 2. **Appel local vs RPC** : `python main.py --transparency-demo`.

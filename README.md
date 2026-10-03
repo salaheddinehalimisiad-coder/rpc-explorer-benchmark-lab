@@ -6,13 +6,15 @@
 
 👉 Nouveau sur le sujet ? Commencez par **[`docs/GUIDE_COMPRENDRE.md`](docs/GUIDE_COMPRENDRE.md)** (explication pas à pas, sans prérequis).
 
+![Tableau de bord : le trajet d'un appel Custom RPC](docs/images/appel.png)
+
 ---
 
 ## Ce que le projet démontre
 
 | Démonstration | Commande | Ce qu'on observe |
 |---|---|---|
-| **Tableau de bord web** | `python main.py --dashboard` | tout ce qui suit dans le navigateur : trajet d'un appel, octets Protobuf colorés par champ, flux en direct, benchmark en barres, pannes, contrat |
+| **Tableau de bord web** | `python main.py --dashboard` | tout ce qui suit dans le navigateur, sans Internet : diagramme de séquence de chaque appel, octets Protobuf colorés par champ, comparaison des 3 protocoles, flux en direct, mesures, pannes, contrat |
 | Menu interactif « RPC Explorer » | `python main.py` | choisir protocole, méthode, arguments ; activer « Sous le capot » ; injecter une panne |
 | Sous le capot | `python main.py --under-the-hood` | les 9 étapes d'un appel Custom RPC, les octets Protobuf décodés champ par champ, la requête HTTP brute |
 | Transparence de localisation | `python main.py --transparency-demo` | le même `update_stock` écrit en local / Custom RPC / gRPC / REST, et son coût |
@@ -40,11 +42,26 @@ python -m pytest -q            # toute la suite de tests
 python main.py                 # menu interactif
 ```
 
+> **Windows et conflits de versions.** Le projet demande `protobuf >= 7.35`. Si d'autres outils installés sur le même Python (tensorflow, streamlit…) exigent une version plus ancienne, pip affiche des « dependency conflicts » : ils ne concernent pas ce projet, mais l'environnement virtuel ci-dessus évite tout mélange. Le tableau de bord s'ouvre ensuite sur http://127.0.0.1:8080 (`--port` pour en changer).
+
 Le code Protobuf généré est versionné. Pour le régénérer après une modification d'un `.proto` :
 
 ```bash
 python scripts/generate_protos.py
 ```
+
+---
+
+## Le tableau de bord
+
+| | |
+|---|---|
+| ![Accueil](docs/images/accueil.png) | ![Mesure](docs/images/mesure.png) |
+| **Appel** : points de départ guidés, comparaison des 3 protocoles, historique | **Mesure** : latence médiane, percentiles, débit, octets échangés |
+| ![Pannes](docs/images/pannes.png) | ![Contrat](docs/images/contrat.png) |
+| **Pannes** : dégrader les serveurs, expériences de timeout, retry, idempotence | **Contrat** : client v1 face à un serveur v2, verdict par changement |
+
+Raccourci : <kbd>Ctrl</kbd> + <kbd>Entrée</kbd> envoie l'appel. Les polices et icônes sont embarquées (licences libres OFL et ISC, voir `dashboard/static/`).
 
 ---
 
@@ -79,7 +96,7 @@ python scripts/generate_protos.py
 | `contract_evolution/` | contrat v2 + serveur v2 (processus séparé) + démo client v1 / serveur v2 |
 | `lab/` | lancement des 3 serveurs, démos transparence / pannes / benchmark |
 | `cli/` | menu interactif |
-| `dashboard/` | tableau de bord web local (Flask + une page HTML sans dépendance Internet) |
+| `dashboard/` | tableau de bord web local : API Flask (`app.py`) + une page HTML, polices et icônes embarquées (`static/`) |
 | `tests/` | tests unitaires, d'intégration et de bout en bout |
 
 > Le package gRPC s'appelle `grpc_impl` et non `grpc` pour ne pas masquer la bibliothèque officielle `grpc` (grpcio).
@@ -126,6 +143,7 @@ La CI GitHub Actions (`.github/workflows/tests.yml`) exécute les tests sous Lin
 | 10 | Évolution de contrat | ✅ |
 | 11 | CLI interactif + `main.py` | ✅ |
 | 12 | Streaming Custom RPC + tableau de bord web | ✅ |
+| 13 | Refonte visuelle et ergonomique du tableau de bord | ✅ |
 
 Pistes futures (non implémentées) : client streaming / streaming bidirectionnel gRPC, tests sur un vrai réseau entre deux machines.
 

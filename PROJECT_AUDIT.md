@@ -29,9 +29,9 @@
 5. `docs/chore:` README, guide, dépendances, script de génération Protobuf, CI.
 
 ### Preuves
-- `python -m pytest -q` → **226 passed** (Linux, Python 3.13.16, grpcio 1.84.0, protobuf 7.36.1) — STATUT : VÉRIFIÉ.
+- `python -m pytest -q` → **246 passed** (Linux, Python 3.13.16, grpcio 1.84.0, protobuf 7.36.1) — STATUT : VÉRIFIÉ.
+- Windows, Python 3.10.11 (PC du responsable du projet) : 244/246 avant correction ; les 2 échecs venaient du délai de refus de connexion propre à Windows, corrigé dans le commit `fix(lab): make failure demos deterministic on Windows`. Relance après correction sous Windows — STATUT : NON VÉRIFIÉ (à relancer).
 - Chaque mode de `main.py` a été exécuté de bout en bout ; mode `--serve` / `--call` vérifié entre deux processus distincts — STATUT : VÉRIFIÉ.
-- Exécution sous Windows : STATUT : NON VÉRIFIÉ localement (la CI GitHub Actions inclut `windows-latest`).
 
 ### Observations de mesure (Linux, localhost — non généralisables)
 - Custom RPC avec connexion persistante < Custom RPC 1 connexion/appel < gRPC < REST en latence médiane sur `calculate_factorial(10)`.
