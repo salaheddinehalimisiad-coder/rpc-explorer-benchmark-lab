@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0] — 2026-10-03
+
+### Modifié
+- **Tableau de bord, refonte visuelle** : icônes Lucide embarquées (hors ligne), cartes, indicateurs clés (statut, durée, octets envoyés et reçus), badges de statut, logo, serveurs en ligne dans la barre latérale, sélecteur de pannes illustré, tuiles de synthèse pour la mesure et le contrat, mise en page mobile corrigée.
+
 ## [1.2.0] — 2026-10-03
 
 ### Modifié

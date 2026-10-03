@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>RPC Explorer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f2a44'/%3E%3Ccircle cx='10' cy='16' r='4' fill='%23f2b14a'/%3E%3Ccircle cx='22' cy='16' r='4' fill='%2348c1cf'/%3E%3C/svg%3E">
 <style>
 @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap;
   src: url(/static/fonts/InstrumentSans-latin.woff2) format("woff2");
@@ -16,119 +17,143 @@
 @font-face { font-family: "Martian Mono"; font-weight: 500; font-display: swap; src: url(/static/fonts/MartianMono-500.woff2) format("woff2"); }
 
 :root {
-  --bg: #f3f5f4; --surface: #fbfcfb; --sunken: #e9edeb;
-  --ink: #161a18; --ink-2: #48504c; --ink-3: #737b77;
-  --rule: #d3d9d6; --rule-2: #e3e8e5;
-  --ch1: #9a5b00;  /* Custom RPC : voie 1, ambre */
-  --ch2: #00798a;  /* gRPC : voie 2, cyan */
-  --ch3: #a3326f;  /* REST : voie 3, magenta */
-  --ch0: #5d6661;  /* appel local */
-  --fault: #c42b1c; --ok: #2c7a30;
+  color-scheme: light;
+  --bg: #eef1f5; --surface: #ffffff; --sunken: #f6f8fa; --raise: #f9fafb;
+  --ink: #111827; --ink-2: #4b5563; --ink-3: #6b7280;
+  --rule: #e2e7ee; --rule-2: #edf0f4;
+  --brand: #1f2a44; --brand-2: #2c3b5e;
+  --ch1: #a85d00;  /* Custom RPC */
+  --ch2: #0b7f8f;  /* gRPC */
+  --ch3: #b02e74;  /* REST */
+  --ch0: #64748b;  /* appel local */
+  --fault: #cf3a2e; --ok: #1d8644; --warn: #b26a00;
   --accent: var(--ch1);
+  --shadow: 0 1px 2px rgba(17, 24, 39, .05), 0 1px 1px rgba(17, 24, 39, .03);
+  --shadow-lg: 0 10px 24px -12px rgba(17, 24, 39, .18), 0 2px 4px rgba(17, 24, 39, .04);
   --sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "Martian Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
 }
 * { box-sizing: border-box; }
-html { background: var(--bg); color-scheme: light; }
-body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans); font-feature-settings: "ss01"; -webkit-font-smoothing: antialiased; }
+html { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: -0.01em; }
 .num { font-variant-numeric: tabular-nums; }
+.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ic.sm { width: 15px; height: 15px; }
+.ic.lg { width: 22px; height: 22px; }
 
-/* ── Cadre : rail à gauche, plan de travail à droite ── */
-.frame { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
-.rail { border-right: 1px solid var(--rule); padding: 22px 0 18px; display: flex; flex-direction: column; gap: 26px; position: sticky; top: 0; height: 100vh; }
-.brand { padding: 0 22px; }
-.brand b { display: block; font-size: 19px; font-weight: 650; letter-spacing: -0.015em; }
-.brand span { color: var(--ink-3); font-size: 13px; }
-.nav { display: flex; flex-direction: column; }
-.nav button { all: unset; cursor: pointer; padding: 7px 22px; color: var(--ink-2); border-left: 2px solid transparent; }
-.nav button:hover { color: var(--ink); background: var(--rule-2); }
-.nav button[aria-current="page"] { color: var(--ink); font-weight: 600; border-left-color: var(--ink); }
-.nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.channels { margin-top: auto; padding: 0 22px; display: flex; flex-direction: column; gap: 6px; }
-.channels h2 { font-size: 13px; font-weight: 500; color: var(--ink-3); margin: 0 0 4px; }
-.chan { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; }
-.chan i { width: 10px; height: 10px; border-radius: 1px; background: var(--c); }
-.chan .mono { color: var(--ink-3); font-size: 11.5px; }
-.fault-state { margin: 10px 22px 0; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 13.5px; color: var(--ink-3); }
-.fault-state.on { color: var(--fault); font-weight: 600; }
+/* ── Cadre ── */
+.frame { display: grid; grid-template-columns: 252px minmax(0, 1fr); min-height: 100vh; }
+.rail { background: var(--surface); border-right: 1px solid var(--rule); padding: 20px 14px 18px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; gap: 11px; align-items: center; padding: 2px 8px 0; }
+.brand .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--brand); display: grid; place-items: center; box-shadow: var(--shadow-lg); }
+.brand b { display: block; font-size: 17px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.15; }
+.brand span { color: var(--ink-3); font-size: 12.5px; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav h2, .side-h { font-size: 12px; font-weight: 600; color: var(--ink-3); margin: 0 10px 6px; }
+.nav button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; color: var(--ink-2); font-weight: 500; }
+.nav button .ic { color: var(--ink-3); }
+.nav button:hover { background: var(--sunken); color: var(--ink); }
+.nav button[aria-current="page"] { background: #e9eef8; color: var(--brand); font-weight: 600; }
+.nav button[aria-current="page"] .ic { color: var(--brand); }
+.nav button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.nav button kbd { margin-left: auto; }
+.servers { margin-top: auto; border: 1px solid var(--rule); border-radius: 10px; padding: 12px; background: var(--raise); }
+.servers .side-h { margin: 0 0 8px; display: flex; justify-content: space-between; }
+.srv { display: grid; grid-template-columns: 8px 1fr auto; gap: 9px; align-items: center; font-size: 13.5px; padding: 4px 0; }
+.srv .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
+.srv.down .dot { background: var(--fault); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fault) 18%, transparent); }
+.srv .mono { color: var(--ink-3); font-size: 11px; }
+.srv b { font-weight: 500; display: flex; gap: 7px; align-items: center; }
+.srv b i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.netstate { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ok); font-weight: 500; }
+.netstate.on { color: var(--fault); }
 
-.work { padding: 28px 40px 64px; min-width: 0; }
+.work { padding: 30px 40px 72px; min-width: 0; max-width: 1360px; }
 .view[hidden] { display: none; }
-.view > header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; margin-bottom: 22px; }
-.view > header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
-.view > header p { margin: 0; color: var(--ink-2); max-width: 64ch; }
-h3 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+.vhead { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.vhead h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; margin: 0; line-height: 1.1; }
+.vhead p { margin: 3px 0 0; color: var(--ink-2); max-width: 70ch; }
+.vhead .act { margin-left: auto; }
+.tile { --c: var(--brand); width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+  color: var(--c); background: color-mix(in srgb, var(--c) 11%, white); border: 1px solid color-mix(in srgb, var(--c) 18%, white); }
+.tile.sm { width: 34px; height: 34px; border-radius: 9px; }
+h3 { font-size: 15px; font-weight: 600; margin: 0; }
+
+/* ── Cartes ── */
+.card > table { display: block; overflow-x: auto; }
+.card > table tbody { display: table; width: 100%; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); }
+.card-h { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--rule-2); }
+.card-h .ic { color: var(--ink-3); }
+.card-h small { margin-left: auto; color: var(--ink-3); font-size: 13px; }
+.card-b { padding: 16px 18px; }
+.stack { display: grid; gap: 20px; }
+
+/* ── Boutons et champs ── */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--rule); background: var(--surface); border-radius: 9px; cursor: pointer; font-weight: 500; box-shadow: var(--shadow); white-space: nowrap; }
+.btn:hover { border-color: #cdd5df; background: var(--raise); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; box-shadow: var(--shadow-lg); }
+.btn.primary:hover { background: var(--brand-2); }
+.btn:disabled { opacity: .6; cursor: progress; }
+.btn.busy .ic { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+.field { display: grid; gap: 5px; }
+.field > span { font-size: 12.5px; color: var(--ink-3); font-weight: 500; }
+select, input[type=text], input[type=number] { padding: 8px 11px; border: 1px solid var(--rule); border-radius: 9px; background: var(--surface); min-width: 0; height: 38px; }
+select:focus, input:focus { border-color: var(--brand); outline: 3px solid color-mix(in srgb, var(--brand) 14%, transparent); outline-offset: 0; }
+input[type=number] { width: 120px; }
+kbd { font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); color: var(--ink-3); }
+.subtle { color: var(--ink-3); font-size: 13.5px; margin: 0; }
 
 /* ── Barre de requête ── */
-.requestbar { display: flex; flex-wrap: wrap; align-items: end; gap: 14px 18px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; }
-.field { display: grid; gap: 4px; }
-.field > span { font-size: 12.5px; color: var(--ink-3); }
-.proto { display: inline-flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
-.proto button { border: 0; background: transparent; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-.proto button + button { border-left: 1px solid var(--rule); }
-.proto button i { width: 8px; height: 8px; border-radius: 1px; background: var(--c); }
-.proto button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-select, input[type=text], input[type=number] { padding: 6px 9px; border: 1px solid var(--rule); border-radius: 3px; background: var(--bg); min-width: 0; }
-input[type=number] { width: 110px; }
+.requestbar { display: flex; flex-wrap: wrap; align-items: end; gap: 14px 16px; padding: 16px 18px; }
+.seg { display: inline-flex; padding: 3px; gap: 3px; background: var(--sunken); border: 1px solid var(--rule); border-radius: 10px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border-radius: 7px; white-space: nowrap; color: var(--ink-2); font-weight: 500; height: 30px; }
+.seg button i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(17, 24, 39, .12); font-weight: 600; }
 #argFields { display: contents; }
-#argFields input[type=text] { width: 150px; }
-.go { margin-left: auto; padding: 8px 18px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: 3px; cursor: pointer; font-weight: 600; }
-.go:disabled { opacity: .5; cursor: progress; }
-.btn { padding: 6px 13px; border: 1px solid var(--rule); background: var(--surface); border-radius: 3px; cursor: pointer; }
-.btn:hover { border-color: var(--ink-3); }
-.btn:disabled { opacity: .5; cursor: progress; }
-.subtle { color: var(--ink-3); font-size: 13.5px; margin: 8px 2px 0; }
+#argFields input[type=text] { width: 160px; }
+.requestbar .send { margin-left: auto; display: flex; gap: 10px; }
+.barfoot { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; padding: 11px 18px; border-top: 1px solid var(--rule-2); background: var(--raise); border-radius: 0 0 12px 12px; }
+.barfoot .subtle { display: flex; gap: 8px; align-items: center; }
 
-.barfoot { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; margin: 8px 2px 0; }
-.barfoot .subtle { margin: 0; }
-.barfoot .acts { display: flex; gap: 10px; align-items: center; }
-kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 3px; background: var(--surface); color: var(--ink-2); }
-.banner { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-top: 16px; padding: 10px 14px; border: 1px solid var(--fault); border-left-width: 4px; background: #fdf1ef; color: var(--ink); border-radius: 3px; }
+.banner { display: flex; gap: 12px; align-items: center; margin-top: 16px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--fault) 35%, white); background: color-mix(in srgb, var(--fault) 7%, white); border-radius: 12px; }
+.banner .ic { color: var(--fault); }
 .banner b { color: var(--fault); }
+.banner .btn { margin-left: auto; }
 .banner[hidden] { display: none; }
-.start { margin-top: 34px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; }
-.start h3 { grid-column: 1 / -1; }
-.preset { all: unset; cursor: pointer; display: grid; grid-template-columns: 10px 1fr auto; gap: 4px 12px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--rule); }
-.preset i { width: 10px; height: 10px; border-radius: 1px; background: var(--c); align-self: center; }
+
+/* ── Démarrage ── */
+.start { margin-top: 24px; }
+.start-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.preset { all: unset; cursor: pointer; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; padding: 16px 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.preset .tile { grid-row: span 2; }
 .preset b { font-weight: 600; }
 .preset span { grid-column: 2; color: var(--ink-2); font-size: 14px; }
-.preset em { font-style: normal; color: var(--ink-3); grid-row: 1; grid-column: 3; font-size: 13px; }
-.preset:hover b { text-decoration: underline; text-underline-offset: 3px; }
-.preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cmp td.bar { width: 34%; }
-.cmp .meter { height: 10px; background: var(--c); }
-.cmp tr.pick { cursor: pointer; }
-.cmp tr.pick:hover td { background: var(--rule-2); }
-.history { margin-top: 36px; }
-.history table td { padding-top: 5px; padding-bottom: 5px; }
-.history tr { cursor: pointer; }
-.history tr:hover td { background: var(--rule-2); }
-.codewrap { position: relative; }
-.copy { position: absolute; top: 8px; right: 8px; padding: 2px 9px; font-size: 12.5px; border: 1px solid var(--rule); background: var(--surface); border-radius: 3px; cursor: pointer; }
-.applied { margin: 10px 0 0; font-size: 13.5px; color: var(--ink-2); }
-.busy::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -1px; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) { .busy::after { animation: none; } }
+.preset .go { grid-row: 1 / span 2; grid-column: 3; color: var(--ink-3); }
+.preset:hover { border-color: color-mix(in srgb, var(--c) 45%, white); box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.preset:hover .go { color: var(--c); }
+.preset:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .preset { transition: none; } .preset:hover { transform: none; } }
 
 /* ── Résultat d'un appel ── */
-.callgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; margin-top: 26px; align-items: start; }
-.panel-title { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 8px; margin-bottom: 14px; }
-.panel-title h3 { margin: 0; }
-.panel-title span { color: var(--ink-3); font-size: 13px; }
-.seq svg { width: 100%; height: auto; display: block; overflow: visible; }
+.callgrid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; align-items: start; }
+#seqHost > svg { width: 100%; height: auto; display: block; overflow: visible; }
 .seq text { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
 .seq .t { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-3); }
-.seq .life { stroke: var(--rule); stroke-dasharray: 3 4; }
+.seq .life { stroke: #cfd6df; stroke-dasharray: 3 4; }
 .seq .head { font-weight: 600; fill: var(--ink); font-size: 13.5px; }
-.seq .act { fill: var(--surface); stroke: var(--ink-3); }
-.seq .msg { stroke: var(--accent); stroke-width: 1.6; fill: none; }
-.seq .msg-label { fill: var(--accent); font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.seq .lane { fill: var(--sunken); }
+.seq .act { fill: var(--surface); stroke: #b9c2cd; }
+.seq .msg { stroke: var(--accent); stroke-width: 1.7; fill: none; }
+.seq .msg-label { fill: var(--accent); font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
 .seq .dot { fill: var(--ink-2); }
-.seq .fail { fill: var(--fault); font-weight: 600; }
 .seq .hl { fill: var(--accent); }
+.seq .fail { fill: var(--fault); font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) {
   .seq .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw .45s ease-out forwards; animation-delay: var(--d); }
   .seq .appear { opacity: 0; animation: appear .2s ease-out forwards; animation-delay: var(--d); }
@@ -136,187 +161,267 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
 @keyframes draw { to { stroke-dashoffset: 0; } }
 @keyframes appear { to { opacity: 1; } }
 
-.readout { display: flex; gap: 28px; align-items: baseline; flex-wrap: wrap; margin-bottom: 14px; }
-.readout .status { font-family: var(--mono); font-size: 15px; font-weight: 500; }
-.readout .status.ok { color: var(--ok); } .readout .status.err { color: var(--fault); }
-.readout .dur { font-family: var(--mono); font-size: 26px; letter-spacing: -0.03em; }
-.readout .dur small { font-size: 13px; color: var(--ink-3); margin-left: 4px; }
-.tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--rule); margin-bottom: 12px; }
-.tabs button { all: unset; cursor: pointer; padding: 6px 0; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--rule-2); }
+.kpi { padding: 14px 18px; display: grid; gap: 2px; }
+.kpi + .kpi { border-left: 1px solid var(--rule-2); }
+.kpi span { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+.kpi b { font-family: var(--mono); font-weight: 500; font-size: 19px; letter-spacing: -0.03em; white-space: nowrap; }
+.kpi b small { font-size: 12px; color: var(--ink-3); margin-left: 3px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; padding: 3px 9px 3px 7px; border-radius: 999px; white-space: nowrap; }
+.badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 11%, white); }
+.badge.err { color: var(--fault); background: color-mix(in srgb, var(--fault) 10%, white); }
+.badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 11%, white); }
+.badge .ic { width: 14px; height: 14px; }
+.tabs { display: flex; gap: 4px; padding: 10px 14px 0; border-bottom: 1px solid var(--rule-2); }
+.tabs button { all: unset; cursor: pointer; display: flex; gap: 7px; align-items: center; padding: 8px 10px; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 500; font-size: 14px; }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-.tabs button:focus-visible { outline: 2px solid var(--accent); }
-pre.code { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.65; background: var(--sunken); border: 1px solid var(--rule-2); border-radius: 3px; padding: 12px 14px; white-space: pre-wrap; word-break: break-word; max-height: 420px; overflow: auto; }
+.tabs button:focus-visible { outline: 2px solid var(--brand); }
+#tabBody { padding: 16px 18px; }
+pre.code { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.7; background: var(--sunken); border: 1px solid var(--rule-2); border-radius: 9px; padding: 14px 16px; white-space: pre-wrap; word-break: break-word; max-height: 440px; overflow: auto; }
 pre.code .k { color: var(--accent); }
-.bytes { display: flex; flex-wrap: wrap; gap: 2px; margin: 4px 0 12px; }
-.bytes span { font-family: var(--mono); font-size: 11.5px; padding: 3px 4px 2px; min-width: 26px; text-align: center; background: var(--sunken); border-bottom: 2px solid var(--c, var(--rule)); color: var(--c, var(--ink-3)); }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
-th { font-weight: 500; color: var(--ink-3); font-size: 13px; border-bottom-color: var(--rule); }
-td.r, th.r { text-align: right; }
-td .sw { display: inline-block; width: 8px; height: 8px; background: var(--c); margin-right: 8px; border-radius: 1px; }
-.note { color: var(--ink-2); max-width: 70ch; margin: 16px 0 0; padding-left: 12px; border-left: 2px solid var(--rule); }
-.empty { color: var(--ink-3); padding: 48px 0; }
+.codewrap { position: relative; }
+.copy { position: absolute; top: 8px; right: 8px; display: inline-flex; gap: 6px; align-items: center; padding: 4px 9px; font-size: 12.5px; border: 1px solid var(--rule); background: var(--surface); border-radius: 7px; cursor: pointer; color: var(--ink-2); }
+.copy:hover { color: var(--ink); }
+.bytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0 14px; }
+.bytes span { font-family: var(--mono); font-size: 11.5px; padding: 4px 4px 3px; min-width: 27px; text-align: center; border-radius: 4px; background: color-mix(in srgb, var(--c, var(--ink-3)) 10%, white); color: var(--c, var(--ink-3)); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--c, var(--ink-3)) 55%, white); }
+.note { display: flex; gap: 10px; align-items: flex-start; color: var(--ink-2); margin: 18px 0 0; padding: 12px 16px; background: color-mix(in srgb, var(--brand) 4%, white); border: 1px solid color-mix(in srgb, var(--brand) 12%, white); border-radius: 10px; }
+.note .ic { color: var(--brand); margin-top: 2px; }
+.note[hidden] { display: none; }
+.hint-line { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; }
 
-/* ── Analyseur logique (flux) ── */
-.scope { background: var(--sunken); border: 1px solid var(--rule); border-radius: 3px; padding: 14px 16px 10px; margin-top: 18px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule-2); vertical-align: middle; }
+th { font-weight: 600; color: var(--ink-3); font-size: 12.5px; background: var(--raise); }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; white-space: nowrap; }
+td .sw { display: inline-block; width: 8px; height: 8px; background: var(--c); margin-right: 9px; border-radius: 2px; }
+.card table th:first-child, .card table td:first-child { padding-left: 18px; }
+.card table th:last-child, .card table td:last-child { padding-right: 18px; }
+tr.pick { cursor: pointer; }
+tr.pick:hover td { background: var(--raise); }
+.meter { height: 8px; border-radius: 4px; background: var(--c); }
+.history { margin-top: 20px; }
+.history[hidden] { display: none; }
+
+/* ── Flux ── */
+.controls { display: flex; flex-wrap: wrap; gap: 14px 16px; align-items: end; padding: 16px 18px; }
+.scope { background: #fbfcfd; border-radius: 0 0 12px 12px; padding: 18px 18px 10px; }
 .scope svg { width: 100%; height: auto; display: block; }
 .scope .grid { stroke: var(--rule); stroke-width: 1; }
-.scope .base { stroke-width: 1.5; fill: none; }
+.scope .base { stroke-width: 1.8; fill: none; }
 .scope text { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
-.scope .lbl { font-family: var(--sans); font-size: 13px; fill: var(--ink); font-weight: 600; }
-.measures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-top: 18px; border-top: 1px solid var(--rule); }
-.measures div { padding: 12px 16px 0 0; }
-.measures span { display: block; font-size: 13px; color: var(--ink-3); }
-.measures b { font-family: var(--mono); font-weight: 500; font-size: 22px; letter-spacing: -0.03em; }
+.scope .lbl { font-family: var(--sans); font-size: 13.5px; fill: var(--ink); font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); display: grid; gap: 6px; }
+.stat span { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--ink-3); }
+.stat span i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.stat b { font-family: var(--mono); font-weight: 500; font-size: 24px; letter-spacing: -0.03em; }
+.stat small { color: var(--ink-3); font-size: 12.5px; }
 
 /* ── Mesure ── */
-.bars { display: grid; grid-template-columns: 230px minmax(0, 1fr) 96px; gap: 10px 14px; align-items: center; margin: 6px 0 30px; }
-.bars .lab { font-size: 14px; display: flex; align-items: center; gap: 8px; }
-.bars .lab i { width: 8px; height: 8px; border-radius: 1px; background: var(--c); }
-.bars .trk { height: 14px; position: relative; background: repeating-linear-gradient(90deg, var(--rule-2) 0 1px, transparent 1px 10%); }
-.bars .bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); }
+.bars { display: grid; grid-template-columns: 240px minmax(0, 1fr) 100px; gap: 12px 16px; align-items: center; }
+.bars .lab { font-size: 14px; display: flex; align-items: center; gap: 9px; }
+.bars .lab i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.bars .trk { height: 12px; position: relative; background: var(--sunken); border-radius: 6px; }
+.bars .bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 6px; }
 .bars .val { font-family: var(--mono); font-size: 12px; text-align: right; }
-.controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: end; }
-.warn { color: var(--fault); }
 
 /* ── Pannes ── */
-.split { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 40px; align-items: start; }
-.inject { background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; padding: 16px; }
-.inject label { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule-2); cursor: pointer; }
-.inject label:last-of-type { border-bottom: 0; }
-.inject input[type=number] { width: 66px; padding: 2px 6px; }
-.inject .go { margin: 12px 0 0; width: 100%; }
-.exp { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 20px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
-.exp:first-child { padding-top: 0; }
-.exp h3 { margin: 0; }
-.exp p { margin: 0; color: var(--ink-2); grid-column: 1; }
-.exp .btn { grid-row: 1 / span 2; grid-column: 2; align-self: start; }
-.exp .out { grid-column: 1 / -1; margin-top: 10px; }
+.split { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; }
+.opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; padding: 12px; border: 1px solid var(--rule); border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+.opt input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.opt .tile { grid-row: span 2; }
+.opt b { font-weight: 600; font-size: 14.5px; }
+.opt small { grid-column: 2; color: var(--ink-3); font-size: 12.5px; }
+.opt:has(input:checked) { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent); background: color-mix(in srgb, var(--brand) 3%, white); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.opt input[type=number] { width: 72px; height: 28px; padding: 2px 6px; }
+.applied { display: flex; gap: 8px; align-items: center; margin: 10px 0 0; font-size: 13.5px; color: var(--ink-2); min-height: 20px; }
+.exps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.exp { display: flex; flex-direction: column; }
+.exp .card-b { display: grid; gap: 12px; flex: 1; align-content: start; }
+.exp .row { display: flex; gap: 12px; align-items: flex-start; }
+.exp p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
 .exp .out:empty { display: none; }
-.good, .exp .out .good { color: var(--ok); font-weight: 600; }
-.bad, .exp .out .bad { color: var(--fault); font-weight: 600; }
-.meh { color: var(--ch1); font-weight: 600; }
-.log { font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin: 6px 0; padding: 0; list-style: none; }
+.exp .out table th, .exp .out table td { padding: 7px 8px; font-size: 13.5px; }
+.exp .out table th:first-child, .exp .out table td:first-child { padding-left: 0; }
+.exp .out table { background: transparent; }
+.exp .out th { background: transparent; }
+.exp.wide { grid-column: 1 / -1; }
+.good { color: var(--ok); font-weight: 600; } .bad { color: var(--fault); font-weight: 600; }
+.log { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); margin: 6px 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.log li { display: flex; gap: 6px; align-items: center; }
+.outline { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
 
-@media (max-width: 980px) {
-  .frame { grid-template-columns: 1fr; }
-  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); padding: 14px 0 0; gap: 10px; }
-  .nav { flex-direction: row; overflow-x: auto; }
-  .nav button { border-left: 0; border-bottom: 2px solid transparent; padding: 8px 14px; white-space: nowrap; }
-  .nav button[aria-current="page"] { border-bottom-color: var(--ink); }
-  .channels, .fault-state { display: none; }
+/* ── Contrat ── */
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.empty { display: grid; place-items: center; text-align: center; gap: 10px; padding: 48px 20px; color: var(--ink-3); }
+.empty .tile { width: 52px; height: 52px; border-radius: 14px; }
+.empty b { color: var(--ink); font-size: 15.5px; }
+
+@media (max-width: 1100px) {
+  .callgrid, .split { grid-template-columns: 1fr; }
+  .exps { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .frame { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); padding: 12px 12px 8px; gap: 10px; }
+  .nav { flex-direction: row; overflow-x: auto; } .nav h2 { display: none; }
+  .nav button { white-space: nowrap; }
+  .servers { display: none; }
   .work { padding: 20px 16px 48px; }
-  .callgrid, .split, .start { grid-template-columns: 1fr; }
-  .go { margin-left: 0; }
-  .bars { grid-template-columns: 1fr 80px; }
-  .bars .lab { grid-column: 1 / -1; }
-  .measures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .presets, .stats, .summary { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(3) { border-left: 0; }
+  .requestbar .send { margin-left: 0; }
+  .bars { grid-template-columns: 1fr 80px; } .bars .lab { grid-column: 1 / -1; }
+  .vhead .act { display: none; }
 }
 </style>
 </head>
 <body>
 <div class="frame">
 <aside class="rail">
-  <div class="brand"><b>RPC Explorer</b><span>banc d'essai des appels distants</span></div>
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 22 22"><circle cx="5" cy="11" r="3.2" fill="#f2b14a"/><circle cx="17" cy="11" r="3.2" fill="#48c1cf"/><path d="M8.6 8.6 H13.4 M13.4 13.4 H8.6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M12 7 L13.6 8.6 L12 10.2 M10 11.8 L8.4 13.4 L10 15" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div><b>RPC Explorer</b><span>banc d'essai des appels distants</span></div>
+  </div>
   <nav class="nav" aria-label="Vues">
-    <button data-view="call" aria-current="page">Appel</button>
-    <button data-view="stream">Flux</button>
-    <button data-view="bench">Mesure</button>
-    <button data-view="faults">Pannes</button>
-    <button data-view="contract">Contrat</button>
+    <h2>Laboratoire</h2>
+    <button data-view="call"><svg class="ic"><use href="/static/icons.svg#i-send"/></svg>Appel</button>
+    <button data-view="stream"><svg class="ic"><use href="/static/icons.svg#i-radio-tower"/></svg>Flux</button>
+    <button data-view="bench"><svg class="ic"><use href="/static/icons.svg#i-gauge"/></svg>Mesure</button>
+    <button data-view="faults"><svg class="ic"><use href="/static/icons.svg#i-plug-zap"/></svg>Pannes</button>
+    <button data-view="contract"><svg class="ic"><use href="/static/icons.svg#i-file-diff"/></svg>Contrat</button>
   </nav>
-  <div class="channels" id="channels"><h2>Serveurs à l'écoute</h2></div>
-  <div class="fault-state" id="faultState" role="status">Réseau nominal</div>
+  <div class="servers">
+    <div class="side-h"><span>Serveurs</span><span id="srvCount"></span></div>
+    <div id="channels"></div>
+    <div class="netstate" id="faultState" role="status"><svg class="ic sm"><use href="/static/icons.svg#i-signal"/></svg><span>Réseau nominal</span></div>
+  </div>
 </aside>
 
 <main class="work">
 <!-- ═════ APPEL ═════ -->
 <section class="view" id="view-call">
-  <header><h1>Appel</h1><p>Un appel, et tout ce qu'il traverse entre le client et le serveur.</p></header>
-  <form class="requestbar" id="callForm" autocomplete="off">
-    <div class="field"><span>Protocole</span>
-      <div class="proto" id="proto">
-        <button type="button" data-p="custom" style="--c:var(--ch1)" aria-pressed="true"><i></i>Custom RPC</button>
-        <button type="button" data-p="grpc" style="--c:var(--ch2)" aria-pressed="false"><i></i>gRPC</button>
-        <button type="button" data-p="rest" style="--c:var(--ch3)" aria-pressed="false"><i></i>REST</button>
-      </div>
-    </div>
-    <label class="field"><span>Méthode</span><select id="method"></select></label>
-    <div id="argFields"></div>
-    <button class="go" id="sendBtn" type="submit">Envoyer</button>
-  </form>
-  <div class="barfoot">
-    <p class="subtle" id="protoHint"></p>
-    <div class="acts"><span class="subtle"><kbd>Ctrl</kbd> + <kbd>Entrée</kbd> pour envoyer</span>
-      <button class="btn" type="button" id="compareBtn">Comparer les 3 protocoles</button></div>
+  <div class="vhead">
+    <div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-send"/></svg></div>
+    <div><h1>Appel</h1><p>Un appel, et tout ce qu'il traverse entre le client et le serveur.</p></div>
   </div>
-  <div class="banner" id="faultBanner" hidden><span><b>Panne active.</b> <span id="faultBannerText"></span> Les appels vont s'en ressentir.</span>
-    <button class="btn" type="button" id="clearFault">Rétablir le réseau</button></div>
+  <div class="card">
+    <form class="requestbar" id="callForm" autocomplete="off">
+      <div class="field"><span>Protocole</span>
+        <div class="seg" id="proto">
+          <button type="button" data-p="custom" style="--c:var(--ch1)" aria-pressed="true"><i></i>Custom RPC</button>
+          <button type="button" data-p="grpc" style="--c:var(--ch2)" aria-pressed="false"><i></i>gRPC</button>
+          <button type="button" data-p="rest" style="--c:var(--ch3)" aria-pressed="false"><i></i>REST</button>
+        </div>
+      </div>
+      <label class="field"><span>Méthode</span><select id="method"></select></label>
+      <div id="argFields"></div>
+      <div class="send">
+        <button class="btn" type="button" id="compareBtn"><svg class="ic sm"><use href="/static/icons.svg#i-git-compare-arrows"/></svg><span class="lbl">Comparer les 3</span></button>
+        <button class="btn primary" id="sendBtn" type="submit"><svg class="ic sm"><use href="/static/icons.svg#i-send"/></svg><span class="lbl">Envoyer</span></button>
+      </div>
+    </form>
+    <div class="barfoot">
+      <p class="subtle"><svg class="ic sm"><use href="/static/icons.svg#i-info"/></svg><span id="protoHint"></span></p>
+      <p class="subtle"><kbd>Ctrl</kbd><kbd>Entrée</kbd> pour envoyer</p>
+    </div>
+  </div>
+  <div class="banner" id="faultBanner" hidden>
+    <svg class="ic"><use href="/static/icons.svg#i-triangle-alert"/></svg>
+    <span><b>Panne active.</b> <span id="faultBannerText"></span> Les appels vont s'en ressentir.</span>
+    <button class="btn" type="button" id="clearFault"><svg class="ic sm"><use href="/static/icons.svg#i-rotate-ccw"/></svg>Rétablir le réseau</button>
+  </div>
   <div id="callOut">
     <div class="start">
-      <h3>Par où commencer</h3>
-      <button class="preset" style="--c:var(--ch1)" data-preset="trace"><i></i><b>Suivre un appel Custom RPC</b><em>calculate_factorial</em><span>Chaque étape, du stub au dispatcher, avec son heure exacte.</span></button>
-      <button class="preset" style="--c:var(--ch2)" data-preset="bytes"><i></i><b>Lire les octets d'un message gRPC</b><em>update_stock</em><span>Les champs Protobuf décodés un par un, numéro par numéro.</span></button>
-      <button class="preset" style="--c:var(--ch3)" data-preset="compare"><i></i><b>Comparer les trois protocoles</b><em>get_product_details</em><span>Le même appel en Custom RPC, gRPC et REST : durée et octets.</span></button>
-      <button class="preset" style="--c:var(--ch1)" data-preset="stream"><i></i><b>Recevoir un flux de mesures</b><em>stream_analytics</em><span>Une trame réseau par mesure, puis une trame de fin.</span></button>
+      <div class="start-h"><h3>Par où commencer</h3><span class="subtle">Un clic lance la démonstration</span></div>
+      <div class="presets">
+        <button class="preset" style="--c:var(--ch1)" data-preset="trace"><div class="tile" style="--c:var(--ch1)"><svg class="ic"><use href="/static/icons.svg#i-route"/></svg></div><b>Suivre un appel Custom RPC</b><svg class="ic go"><use href="/static/icons.svg#i-chevron-right"/></svg><span>Chaque étape, du stub au dispatcher, avec son heure exacte.</span></button>
+        <button class="preset" style="--c:var(--ch2)" data-preset="bytes"><div class="tile" style="--c:var(--ch2)"><svg class="ic"><use href="/static/icons.svg#i-binary"/></svg></div><b>Lire les octets d'un message gRPC</b><svg class="ic go"><use href="/static/icons.svg#i-chevron-right"/></svg><span>Les champs Protobuf décodés un par un, numéro par numéro.</span></button>
+        <button class="preset" style="--c:var(--ch3)" data-preset="compare"><div class="tile" style="--c:var(--ch3)"><svg class="ic"><use href="/static/icons.svg#i-git-compare-arrows"/></svg></div><b>Comparer les trois protocoles</b><svg class="ic go"><use href="/static/icons.svg#i-chevron-right"/></svg><span>Le même appel en Custom RPC, gRPC et REST : durée et octets.</span></button>
+        <button class="preset" style="--c:var(--brand)" data-preset="stream"><div class="tile" style="--c:var(--brand)"><svg class="ic"><use href="/static/icons.svg#i-waves"/></svg></div><b>Recevoir un flux de mesures</b><svg class="ic go"><use href="/static/icons.svg#i-chevron-right"/></svg><span>Une trame réseau par mesure, puis une trame de fin.</span></button>
+      </div>
     </div>
   </div>
-  <div class="history" id="history" hidden></div>
+  <div class="card history" id="history" hidden></div>
 </section>
 
 <!-- ═════ FLUX ═════ -->
 <section class="view" id="view-stream" hidden>
-  <header><h1>Flux</h1><p>Un capteur produit une mesure à intervalle régulier. Deux façons de la faire parvenir au client, observées sur la même échelle de temps.</p></header>
-  <div class="controls">
-    <label class="field"><span>Mesures</span><input type="number" id="sN" value="12" min="1" max="100"></label>
-    <label class="field"><span>Intervalle (ms)</span><input type="number" id="sI" value="200" min="0" max="2000" step="50"></label>
-    <button class="go" id="streamBtn" style="margin-left:0">Lancer les deux</button>
+  <div class="vhead">
+    <div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-radio-tower"/></svg></div>
+    <div><h1>Flux</h1><p>Un capteur produit une mesure à intervalle régulier. Deux façons de la faire parvenir au client, sur la même échelle de temps.</p></div>
   </div>
-  <div class="scope"><svg id="scopeSvg" viewBox="0 0 1000 230" role="img" aria-label="Chronogramme des mesures reçues par le client"></svg></div>
-  <div class="measures" id="streamMeasures"></div>
+  <div class="stack">
+    <div class="card">
+      <div class="controls">
+        <label class="field"><span>Mesures</span><input type="number" id="sN" value="12" min="1" max="100"></label>
+        <label class="field"><span>Intervalle (ms)</span><input type="number" id="sI" value="200" min="0" max="2000" step="50"></label>
+        <button class="btn primary" id="streamBtn"><svg class="ic sm"><use href="/static/icons.svg#i-play"/></svg><span class="lbl">Lancer les deux</span></button>
+      </div>
+      <div class="scope"><svg id="scopeSvg" viewBox="0 0 1000 230" role="img" aria-label="Chronogramme des mesures reçues par le client"></svg></div>
+    </div>
+    <div class="stats" id="streamMeasures"></div>
+  </div>
   <p class="note" id="streamNote" hidden></p>
 </section>
 
 <!-- ═════ MESURE ═════ -->
 <section class="view" id="view-bench" hidden>
-  <header><h1>Mesure</h1><p>Même machine, même service, mêmes données. Échauffement, puis N appels chronométrés par variante.</p></header>
-  <div class="controls">
-    <label class="field"><span>Appels mesurés</span><input type="number" id="bN" value="500" min="10" max="5000" step="100"></label>
-    <label class="field"><span>Opération</span>
-      <select id="bOp"><option value="calculate_factorial">calculate_factorial(n=10)</option><option value="get_product_details">get_product_details("PROD-001")</option></select></label>
-    <button class="go" id="benchBtn" style="margin-left:0">Mesurer</button>
+  <div class="vhead">
+    <div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-gauge"/></svg></div>
+    <div><h1>Mesure</h1><p>Même machine, même service, mêmes données. Échauffement, puis N appels chronométrés par variante.</p></div>
   </div>
-  <div id="benchOut" style="margin-top:28px"><p class="empty">Pas encore de mesure.</p></div>
+  <div class="card">
+    <div class="controls">
+      <label class="field"><span>Appels mesurés</span><input type="number" id="bN" value="500" min="10" max="5000" step="100"></label>
+      <label class="field"><span>Opération</span>
+        <select id="bOp"><option value="calculate_factorial">calculate_factorial(n=10)</option><option value="get_product_details">get_product_details("PROD-001")</option></select></label>
+      <button class="btn primary" id="benchBtn"><svg class="ic sm"><use href="/static/icons.svg#i-play"/></svg><span class="lbl">Mesurer</span></button>
+    </div>
+  </div>
+  <div id="benchOut" style="margin-top:20px">
+    <div class="card empty"><div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-chart-no-axes-column"/></svg></div><b>Pas encore de mesure</b><span>Choisissez un nombre d'appels et une opération, puis lancez la mesure.</span></div>
+  </div>
 </section>
 
 <!-- ═════ PANNES ═════ -->
 <section class="view" id="view-faults" hidden>
-  <header><h1>Pannes</h1><p>Un appel distant peut échouer alors que la fonction appelée est correcte.</p></header>
+  <div class="vhead">
+    <div class="tile" style="--c:var(--fault)"><svg class="ic lg"><use href="/static/icons.svg#i-plug-zap"/></svg></div>
+    <div><h1>Pannes</h1><p>Un appel distant peut échouer alors que la fonction appelée est correcte.</p></div>
+  </div>
   <div class="split">
-    <div>
-      <h3>Dégrader les serveurs de cette page</h3>
-      <form class="inject" id="faultForm">
-        <label><input type="radio" name="fault" value="reset" checked> Réseau nominal</label>
-        <label><input type="radio" name="fault" value="latency"> Latence de <input type="number" id="fLat" value="200" min="1" max="5000"> ms</label>
-        <label><input type="radio" name="fault" value="timeout"> Bloquer chaque requête 3 s</label>
-        <label><input type="radio" name="fault" value="crash"> Faire tomber le serveur</label>
-        <button class="go" type="submit">Appliquer</button>
+    <div class="card">
+      <div class="card-h"><svg class="ic"><use href="/static/icons.svg#i-server"/></svg><h3>Dégrader les serveurs</h3></div>
+      <form class="card-b" id="faultForm">
+        <label class="opt"><input type="radio" name="fault" value="reset" checked><div class="tile sm" style="--c:var(--ok)"><svg class="ic sm"><use href="/static/icons.svg#i-shield-check"/></svg></div><b>Réseau nominal</b><small>Aucune perturbation</small></label>
+        <label class="opt"><input type="radio" name="fault" value="latency"><div class="tile sm" style="--c:var(--warn)"><svg class="ic sm"><use href="/static/icons.svg#i-timer"/></svg></div><b>Latence de <input type="number" id="fLat" value="200" min="1" max="5000"> ms</b><small>Ajoutée avant chaque exécution</small></label>
+        <label class="opt"><input type="radio" name="fault" value="timeout"><div class="tile sm" style="--c:var(--warn)"><svg class="ic sm"><use href="/static/icons.svg#i-hourglass"/></svg></div><b>Serveur bloqué 3 s</b><small>Le client finit par abandonner</small></label>
+        <label class="opt"><input type="radio" name="fault" value="crash"><div class="tile sm" style="--c:var(--fault)"><svg class="ic sm"><use href="/static/icons.svg#i-power-off"/></svg></div><b>Serveur tombé</b><small>La connexion est coupée net</small></label>
+        <button class="btn primary" type="submit" style="width:100%;justify-content:center;margin-top:6px"><svg class="ic sm"><use href="/static/icons.svg#i-zap"/></svg>Appliquer</button>
+        <p class="applied" id="faultApplied" role="status"></p>
+        <p class="subtle">Puis refaites un appel dans la vue Appel pour voir ce que reçoit le client.</p>
       </form>
-      <p class="applied" id="faultApplied" role="status"></p>
-      <p class="subtle">Puis refaites un appel dans la vue Appel pour voir ce que reçoit le client.</p>
     </div>
-    <div>
-      <h3>Expériences</h3>
-      <div id="expList"></div>
-    </div>
+    <div class="exps" id="expList"></div>
   </div>
 </section>
 
 <!-- ═════ CONTRAT ═════ -->
 <section class="view" id="view-contract" hidden>
-  <header><h1>Contrat</h1><p>Un client resté en version 1 face à un serveur redéployé en version 2. Le serveur gRPC v2 tourne dans un processus à part.</p></header>
-  <button class="go" id="contractBtn" style="margin-left:0">Lancer l'expérience</button>
-  <div id="contractOut" style="margin-top:28px"></div>
+  <div class="vhead">
+    <div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-file-diff"/></svg></div>
+    <div><h1>Contrat</h1><p>Un client resté en version 1 face à un serveur redéployé en version 2. Le serveur gRPC v2 tourne dans un processus à part.</p></div>
+    <button class="btn primary act" id="contractBtn"><svg class="ic sm"><use href="/static/icons.svg#i-play"/></svg><span class="lbl">Lancer l'expérience</span></button>
+  </div>
+  <div id="contractOut">
+    <div class="card empty"><div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-layers"/></svg></div><b>Version 1 contre version 2</b><span>L'expérience démarre un serveur v2 et lui envoie des requêtes d'un client v1.</span></div>
+  </div>
 </section>
 </main>
 </div>
@@ -326,14 +431,15 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ms = (v, d = 2) => Number(v).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const ic = (name, cls = "") => `<svg class="ic ${cls}" aria-hidden="true"><use href="/static/icons.svg#i-${name}"/></svg>`;
 const NS = "http://www.w3.org/2000/svg";
 const P = {
   custom: { name: "Custom RPC", ch: "var(--ch1)", hint: "Notre middleware : JSON sur une socket TCP, chaque message précédé de sa longueur sur 4 octets.", client: "Stub client", server: "Skeleton" },
   grpc: { name: "gRPC", ch: "var(--ch2)", hint: "Stub généré depuis protos/inventory.proto ; messages Protobuf binaires sur HTTP/2.", client: "Stub généré", server: "Servicer" },
   rest: { name: "REST", ch: "var(--ch3)", hint: "Une ressource, un verbe HTTP : JSON sur HTTP/1.1, en-têtes en texte.", client: "requests", server: "Flask" },
 };
-const FIELD_C = ["var(--ch2)", "var(--ch1)", "var(--ch3)", "#5a7d2a", "#6c5bb3", "#b4532a", "var(--ch0)", "#2f6f9f", "#8a6a00"];
-const state = { proto: "custom", methods: {} };
+const FIELD_C = ["var(--ch2)", "var(--ch1)", "var(--ch3)", "#3f7d20", "#6c5bb3", "#b4532a", "var(--ch0)", "#2f6f9f", "#8a6a00"];
+const state = { proto: "custom", methods: {}, history: [] };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -348,6 +454,21 @@ function el(tag, attrs = {}, parent) {
   return n;
 }
 function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
+function setBusy(btn, busy, label) {
+  btn.disabled = busy; btn.classList.toggle("busy", busy);
+  const l = btn.querySelector(".lbl");
+  if (label) (l || btn).textContent = label;
+  const use = btn.querySelector("use");
+  if (use) {
+    if (busy) { btn.dataset.icon = use.getAttribute("href"); use.setAttribute("href", "/static/icons.svg#i-refresh-cw"); }
+    else if (btn.dataset.icon) use.setAttribute("href", btn.dataset.icon);
+  }
+}
+function badge(status) {
+  const ok = status === "OK";
+  return `<span class="badge ${ok ? "ok" : "err"}">${ic(ok ? "circle-check" : "circle-x")}${esc(ok ? "Succès" : status)}</span>`;
+}
+function errorNote(err) { return `<p class="note" style="border-color:color-mix(in srgb,var(--fault) 30%,white);background:color-mix(in srgb,var(--fault) 5%,white)">${ic("triangle-alert")}<span>${esc(err.message)}</span></p>`; }
 
 /* ── rail ── */
 function faultText(s) {
@@ -359,22 +480,23 @@ function faultText(s) {
 function renderFault(sim) {
   const s = sim && sim.active_scenario, box = $("#faultState");
   box.classList.toggle("on", !!s);
-  box.textContent = faultText(s);
+  box.querySelector("span").textContent = faultText(s);
+  box.querySelector("use").setAttribute("href", `/static/icons.svg#i-${s ? "triangle-alert" : "signal"}`);
+  $$(".srv").forEach(n => n.classList.toggle("down", s === "server_crash"));
   $("#faultBanner").hidden = !s;
   $("#faultBannerText").textContent = s ? faultText(s) + "." : "";
 }
 $("#clearFault").addEventListener("click", async () => {
   renderFault(await api("/api/faults", { kind: "reset" }));
   $('input[name=fault][value=reset]').checked = true;
-  $("#faultApplied").textContent = "";
+  $("#faultApplied").innerHTML = "";
 });
 async function loadInfo() {
   const info = await api("/api/info");
   state.methods = info.methods;
-  const ch = $("#channels");
-  ch.querySelectorAll(".chan").forEach(n => n.remove());
-  Object.entries(info.servers).forEach(([k, port]) => ch.insertAdjacentHTML("beforeend",
-    `<div class="chan" style="--c:${P[k].ch}"><i></i>${P[k].name}<span class="mono">:${port}</span></div>`));
+  $("#channels").innerHTML = Object.entries(info.servers).map(([k, port]) =>
+    `<div class="srv" style="--c:${P[k].ch}"><span class="dot" title="à l'écoute"></span><b><i></i>${P[k].name}</b><span class="mono">:${port}</span></div>`).join("");
+  $("#srvCount").textContent = `${Object.keys(info.servers).length} en ligne`;
   if (!$("#method").options.length) {
     $("#method").innerHTML = Object.keys(info.methods).map(m => `<option>${m}</option>`).join("");
     renderArgs();
@@ -410,34 +532,29 @@ function readArgs() {
   $$("[data-arg]").forEach(i => args[i.dataset.arg] = i.type === "number" ? Number(i.value) : i.value);
   return args;
 }
-function setBusy(btn, busy, label) {
-  btn.disabled = busy; btn.classList.toggle("busy", busy);
-  if (label) btn.textContent = label;
-}
 $("#callForm").addEventListener("submit", async e => {
   e.preventDefault();
   const btn = $("#sendBtn"); setBusy(btn, true, "En cours");
   try { const r = await api("/api/call", { protocol: state.proto, method: $("#method").value, args: readArgs() }); remember(r); renderCall(r); }
-  catch (err) { $("#callOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  catch (err) { $("#callOut").innerHTML = errorNote(err); }
   finally { setBusy(btn, false, "Envoyer"); loadInfo(); }
 });
 document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !$("#view-call").hidden) { e.preventDefault(); $("#callForm").requestSubmit(); }
 });
 
-/* ── historique de la session ── */
-state.history = [];
+/* ── historique ── */
 function remember(r) {
   r.at = new Date();
   state.history.unshift(r);
   state.history = state.history.slice(0, 8);
   const h = $("#history");
   h.hidden = false;
-  h.innerHTML = `<div class="panel-title"><h3>Derniers appels</h3><span>cliquer pour revoir le détail</span></div>
+  h.innerHTML = `<div class="card-h">${ic("history")}<h3>Derniers appels</h3><small>cliquer pour revoir le détail</small></div>
     <table><tr><th>Heure</th><th>Protocole</th><th>Méthode</th><th>Statut</th><th class="r">Durée</th></tr>
-    ${state.history.map((x, i) => `<tr data-h="${i}" tabindex="0"><td class="mono">${x.at.toLocaleTimeString("fr-FR")}</td>
+    ${state.history.map((x, i) => `<tr class="pick" data-h="${i}" tabindex="0"><td class="mono">${x.at.toLocaleTimeString("fr-FR")}</td>
       <td><span class="sw" style="--c:${P[x.protocol].ch}"></span>${P[x.protocol].name}</td><td class="mono">${esc(x.method)}</td>
-      <td class="${x.status === "OK" ? "good" : "bad"}">${esc(x.status)}</td><td class="r mono">${ms(x.elapsed_ms)} ms</td></tr>`).join("")}</table>`;
+      <td>${badge(x.status)}</td><td class="r mono">${ms(x.elapsed_ms)} ms</td></tr>`).join("")}</table>`;
   $$("#history tr[data-h]").forEach(tr => {
     const open = () => { const x = state.history[+tr.dataset.h]; setProto(x.protocol); renderCall(x); window.scrollTo({ top: 0, behavior: "smooth" }); };
     tr.addEventListener("click", open);
@@ -445,7 +562,7 @@ function remember(r) {
   });
 }
 
-/* ── comparaison des trois protocoles ── */
+/* ── comparaison ── */
 function wireSizes(r) {
   if (r.trace) {
     const req = r.trace.find(s => s.step.startsWith("STUB_MARSHAL"));
@@ -466,23 +583,23 @@ async function compareAll() {
       remember(r); results.push(r);
     }
     const max = Math.max(...results.map(r => r.elapsed_ms));
-    $("#callOut").innerHTML = `<div style="margin-top:26px">
-      <div class="panel-title"><h3>Le même appel, trois protocoles</h3><span>${esc(method)}(${esc(Object.entries(args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", "))})</span></div>
-      <table class="cmp"><tr><th>Protocole</th><th>Statut</th><th class="r">Durée</th><th></th><th class="r">Requête</th><th class="r">Réponse</th></tr>
+    $("#callOut").innerHTML = `<div class="card" style="margin-top:20px">
+      <div class="card-h">${ic("git-compare-arrows")}<h3>Le même appel, trois protocoles</h3><small class="mono">${esc(method)}(${esc(Object.entries(args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", "))})</small></div>
+      <table><tr><th>Protocole</th><th>Statut</th><th class="r">Durée</th><th style="width:30%"></th><th class="r">Requête</th><th class="r">Réponse</th><th></th></tr>
       ${results.map((r, i) => { const [q, a] = wireSizes(r); return `<tr class="pick" data-i="${i}" tabindex="0">
-        <td><span class="sw" style="--c:${P[r.protocol].ch}"></span>${P[r.protocol].name}</td>
-        <td class="${r.status === "OK" ? "good" : "bad"}">${esc(r.status)}</td>
+        <td><span class="sw" style="--c:${P[r.protocol].ch}"></span><b style="font-weight:600">${P[r.protocol].name}</b></td>
+        <td>${badge(r.status)}</td>
         <td class="r mono">${ms(r.elapsed_ms)} ms</td>
-        <td class="bar"><div class="meter" style="--c:${P[r.protocol].ch};width:${Math.max(1, r.elapsed_ms / max * 100)}%"></div></td>
-        <td class="r mono">${q ?? "—"} o</td><td class="r mono">${a ?? "—"} o</td></tr>`; }).join("")}</table>
-      <p class="note">Un seul appel par protocole : la durée varie d'un essai à l'autre (le premier appel gRPC ouvre aussi sa connexion). Pour des chiffres fiables, utilisez la vue Mesure. Octets : message + trame pour Custom RPC et gRPC, requête HTTP complète et corps de la réponse pour REST. Cliquez sur une ligne pour voir sa séquence.${method === "update_stock" ? " Attention : update_stock a été exécuté trois fois." : ""}</p></div>`;
+        <td><div class="meter" style="--c:${P[r.protocol].ch};width:${Math.max(1, r.elapsed_ms / max * 100)}%"></div></td>
+        <td class="r mono">${q ?? "—"} o</td><td class="r mono">${a ?? "—"} o</td><td class="r" style="color:var(--ink-3)">${ic("chevron-right", "sm")}</td></tr>`; }).join("")}</table></div>
+      <p class="note">${ic("info")}<span>Un seul appel par protocole : la durée varie d'un essai à l'autre (le premier appel gRPC ouvre aussi sa connexion). Pour des chiffres fiables, utilisez la vue Mesure. Octets : message et trame pour Custom RPC et gRPC, requête HTTP complète et corps de la réponse pour REST. Cliquez sur une ligne pour voir sa séquence.${method === "update_stock" ? " Attention : update_stock a été exécuté trois fois." : ""}</span></p>`;
     $$("#callOut tr.pick").forEach(tr => {
       const open = () => { const r = results[+tr.dataset.i]; setProto(r.protocol); renderCall(r); };
       tr.addEventListener("click", open);
       tr.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
     });
-  } catch (err) { $("#callOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
-  finally { setBusy(btn, false, "Comparer les 3 protocoles"); loadInfo(); }
+  } catch (err) { $("#callOut").innerHTML = errorNote(err); }
+  finally { setBusy(btn, false, "Comparer les 3"); loadInfo(); }
 }
 $("#compareBtn").addEventListener("click", compareAll);
 
@@ -504,7 +621,6 @@ document.addEventListener("click", e => {
 });
 
 /* ── diagramme de séquence ── */
-// Chaque ligne = une étape. Les flèches réseau relient l'envoi d'un côté à la réception de l'autre.
 const STEP_LABELS = [
   [/^CLIENT_CALL/, "appel via le stub"], [/^STUB_MARSHAL/, "sérialisation JSON"], [/^TRANSPORT_SEND/, "envoi sur TCP"],
   [/^SERVER_RECEIVE/, "réception, décodage"], [/^DISPATCH/, "dispatch (table blanche)"], [/^EXECUTE/, "exécution métier"],
@@ -530,10 +646,9 @@ function buildSteps(r) {
   ];
   if (ok) steps.push({ side: "server", label: "réponse sérialisée", raw: "REPLY", d: { taille: resB } });
   steps.push({ side: "client", label: ok ? "résultat rendu à l'appelant" : `erreur : ${r.status}`, raw: "DONE", t: r.elapsed_ms });
-  if (!ok && !r.grpc && !r.http) steps.splice(1, 1); // le serveur n'a jamais répondu
+  if (!ok && !r.grpc && !r.http) steps.splice(1, 1);
   return steps;
 }
-// Associe chaque envoi réseau à sa réception de l'autre côté (une flèche par message).
 function sizeOf(step) {
   const v = step && step.d && (step.d.taille || step.d.trame);
   return typeof v === "string" ? v.replace(/^.*\+ /, "").replace(" de corps", "") : (v || "");
@@ -567,20 +682,21 @@ function networkArrows(steps) {
 }
 function drawSequence(r) {
   const steps = buildSteps(r);
-  const W = 640, top = 54, row = 38, H = top + steps.length * row + 20;
+  const W = 640, top = 62, row = 38, H = top + steps.length * row + 16;
   const xc = 236, xs = 430;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Diagramme de séquence de l'appel" });
-  txt(svg, xc, 18, "Client", { class: "head", "text-anchor": "middle" });
-  txt(svg, xs, 18, "Serveur", { class: "head", "text-anchor": "middle" });
-  txt(svg, xc, 34, P[r.protocol].client, { "text-anchor": "middle", class: "t" });
-  txt(svg, xs, 34, P[r.protocol].server, { "text-anchor": "middle", class: "t" });
-  el("line", { x1: xc, y1: top - 10, x2: xc, y2: H - 10, class: "life" }, svg);
-  el("line", { x1: xs, y1: top - 10, x2: xs, y2: H - 10, class: "life" }, svg);
+  // en-têtes des deux acteurs
+  [[xc, "Client", P[r.protocol].client], [xs, "Serveur", P[r.protocol].server]].forEach(([x, a, b]) => {
+    el("rect", { x: x - 62, y: 4, width: 124, height: 40, rx: 9, class: "lane" }, svg);
+    txt(svg, x, 21, a, { class: "head", "text-anchor": "middle" });
+    txt(svg, x, 36, b, { "text-anchor": "middle", class: "t" });
+  });
+  el("line", { x1: xc, y1: 44, x2: xc, y2: H - 6, class: "life" }, svg);
+  el("line", { x1: xs, y1: 44, x2: xs, y2: H - 6, class: "life" }, svg);
   const y = i => top + i * row + row / 2;
-  // barres d'activation : période où chaque côté travaille
   const firstS = steps.findIndex(s => s.side === "server"), lastS = steps.map(s => s.side).lastIndexOf("server");
-  el("rect", { x: xc - 5, y: y(0) - 8, width: 10, height: y(steps.length - 1) - y(0) + 16, class: "act" }, svg);
-  if (firstS >= 0) el("rect", { x: xs - 5, y: y(firstS) - 8, width: 10, height: y(lastS) - y(firstS) + 16, class: "act" }, svg);
+  el("rect", { x: xc - 5, y: y(0) - 8, width: 10, height: y(steps.length - 1) - y(0) + 16, rx: 2, class: "act" }, svg);
+  if (firstS >= 0) el("rect", { x: xs - 5, y: y(firstS) - 8, width: 10, height: y(lastS) - y(firstS) + 16, rx: 2, class: "act" }, svg);
   const arrows = networkArrows(steps);
   let delay = 0;
   steps.forEach((s, i) => {
@@ -588,22 +704,19 @@ function drawSequence(r) {
     const g = el("g", { class: "appear", style: `--d:${delay}ms` }, svg);
     if (s.d) el("title", {}, g).textContent = Object.entries(s.d).filter(([k]) => k !== "payload")
       .map(([k, v]) => `${k} : ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
-    el("circle", { cx: x, cy: yy, r: 3.2, class: "dot" }, g);
-    if (s.t !== undefined) txt(g, 8, yy + 4, `+${ms(s.t, 3)}`, { class: "t" });
+    el("circle", { cx: x, cy: yy, r: 3.4, class: "dot" }, g);
+    if (s.t !== undefined) txt(g, 6, yy + 4, `+${ms(s.t, 3)}`, { class: "t" });
     if (s.side === "client") txt(g, xc - 16, yy + 4, s.label, { "text-anchor": "end", ...(s.raw === "DONE" && r.status !== "OK" ? { class: "fail" } : {}) });
     else txt(g, xs + 16, yy + 4, s.label);
     delay += 70;
-    const out = arrows.filter(a => a.from === i);
-    out.forEach((a, k) => {
+    arrows.filter(a => a.from === i).forEach(a => {
       const x2 = steps[a.to].side === "client" ? xc : xs, y2 = y(a.to);
       const len = Math.hypot(x2 - x, y2 - yy);
       el("path", { d: `M${x} ${yy} L${x2} ${y2}`, class: "msg draw", style: `--len:${len};--d:${delay}ms`, "marker-end": "url(#arrow)" }, svg);
-      if (a.label) txt(svg, (x + x2) / 2, (yy + y2) / 2 - 9, a.label,
-        { "text-anchor": "middle", class: "msg-label appear", style: `--d:${delay + 200}ms` });
+      if (a.label) txt(svg, (x + x2) / 2, (yy + y2) / 2 - 9, a.label, { "text-anchor": "middle", class: "msg-label appear", style: `--d:${delay + 200}ms` });
       delay += a.label ? 260 : 120;
     });
   });
-  // Échec réseau : la requête part mais aucune réponse ne revient.
   if (r.status !== "OK" && firstS < 0) {
     const si = Math.max(0, steps.findIndex(t => /^(TRANSPORT_SEND|SEND)/.test(t.raw)));
     const yy = y(si), mid = (xc + xs) / 2;
@@ -624,65 +737,71 @@ function byteRow(view, frame) {
   view.fields.forEach((f, i) => f.bytes.split(" ").forEach(b => cells.push(`<span style="--c:${FIELD_C[i % FIELD_C.length]}" title="champ n°${f.field_number} ${esc(f.name)}">${b}</span>`)));
   const rows = view.fields.map((f, i) => `<tr><td><span class="sw" style="--c:${FIELD_C[i % FIELD_C.length]}"></span>n°${f.field_number}</td><td>${esc(f.name)}</td><td class="mono">${esc(f.wire_type)}</td><td class="mono">${esc(JSON.stringify(f.value))}</td></tr>`).join("");
   return `<div class="bytes">${cells.join("") || '<span>vide</span>'}</div>
-    <table><tr><th>Champ</th><th>Nom (connu grâce au .proto)</th><th>Codage</th><th>Valeur</th></tr>${rows}</table>`;
+    <table><tr><th>Champ</th><th>Nom (via le .proto)</th><th>Codage</th><th>Valeur</th></tr>${rows}</table>`;
 }
 function jsonHighlight(s) { return esc(s).replace(/(&quot;[^&]*?&quot;)(\s*:)/g, '<span class="k">$1</span>$2'); }
 function inspectorTabs(r) {
-  const tabs = [["result", "Résultat"]];
-  if (r.protocol === "custom" && r.trace) tabs.push(["wire", "Sur la socket"]);
-  if (r.grpc) tabs.push(["req", "Requête Protobuf"]), r.grpc.response && tabs.push(["res", "Réponse Protobuf"]);
-  if (r.http) tabs.push(["http", "Échange HTTP"]);
+  const tabs = [["result", "Résultat", "braces"]];
+  if (r.protocol === "custom" && r.trace) tabs.push(["wire", "Sur la socket", "binary"]);
+  if (r.grpc) { tabs.push(["req", "Requête Protobuf", "binary"]); if (r.grpc.response) tabs.push(["res", "Réponse Protobuf", "binary"]); }
+  if (r.http) tabs.push(["http", "Échange HTTP", "globe"]);
   const body = {};
   body.result = `<pre class="code">${r.status === "OK" ? jsonHighlight(JSON.stringify(r.result, null, 2)) : esc(r.error)}</pre>`;
   if (r.protocol === "custom" && r.trace) {
     const sent = r.trace.find(s => s.step.startsWith("STUB_MARSHAL"));
     if (sent) {
       const n = parseInt(sent.details.taille);
-      body.wire = `<p class="subtle" style="margin:0 0 6px">Préfixe de longueur (4 octets, ${n} en hexadécimal), puis le corps JSON :</p>
+      body.wire = `<p class="hint-line">Préfixe de longueur (4 octets, ${n} en hexadécimal), puis le corps JSON :</p>
         <div class="bytes">${lengthPrefix(n).map(b => `<span style="--c:var(--ch1)">${b}</span>`).join("")}</div>
         <pre class="code">${jsonHighlight(JSON.stringify(JSON.parse(sent.details.payload), null, 2))}</pre>`;
     }
   }
   if (r.grpc) {
-    body.req = `<p class="subtle" style="margin:0 0 6px">POST ${esc(r.grpc.path)} — ${esc(r.grpc.request.type)}, ${r.grpc.request.size} octets après 5 octets de trame.</p>` + byteRow(r.grpc.request, ["00", ...lengthPrefix(r.grpc.request.size)]);
-    if (r.grpc.response) body.res = `<p class="subtle" style="margin:0 0 6px">${esc(r.grpc.response.type)}, ${r.grpc.response.size} octets.</p>` + byteRow(r.grpc.response);
+    body.req = `<p class="hint-line">POST ${esc(r.grpc.path)} — ${esc(r.grpc.request.type)}, ${r.grpc.request.size} octets après 5 octets de trame.</p>` + byteRow(r.grpc.request, ["00", ...lengthPrefix(r.grpc.request.size)]);
+    if (r.grpc.response) body.res = `<p class="hint-line">${esc(r.grpc.response.type)}, ${r.grpc.response.size} octets.</p>` + byteRow(r.grpc.response);
   }
   if (r.http) {
     const h = r.http;
-    body.http = `<pre class="code">${esc(h.request)}</pre><p class="subtle">↓ HTTP ${esc(h.response_status)}</p><pre class="code">${esc(Object.entries(h.response_headers).map(([k, v]) => `${k}: ${v}`).join("\n"))}\n\n${esc(h.response_body)}</pre>`;
+    body.http = `<pre class="code">${esc(h.request)}</pre><p class="hint-line" style="margin:10px 0">↓ HTTP ${esc(h.response_status)}</p><pre class="code">${esc(Object.entries(h.response_headers).map(([k, v]) => `${k}: ${v}`).join("\n"))}\n\n${esc(h.response_body)}</pre>`;
   }
   return { tabs, body };
 }
-
 const NOTES = {
   custom: "L'appelant n'a écrit qu'une ligne. Stub, sérialisation, transport et dispatch lui sont invisibles : c'est la transparence de localisation, et aussi son piège.",
   grpc: "Seuls les numéros de champs voyagent, jamais leurs noms. Sans le fichier .proto, ces octets sont illisibles : c'est ce qui rend Protobuf compact et le contrat indispensable.",
   rest: "Ici l'appelant manipule lui-même l'URL, le verbe HTTP, le corps JSON et le code de statut : rien n'imite un appel de fonction.",
 };
 function renderCall(r) {
-  const ok = r.status === "OK";
   const { tabs, body } = inspectorTabs(r);
+  const [q, a] = wireSizes(r);
   $("#callOut").innerHTML = `
     <div class="callgrid">
-      <div class="seq"><div class="panel-title"><h3>Séquence</h3><span>${P[r.protocol].name} · ${esc(r.method)}</span></div><div id="seqHost"></div></div>
-      <div>
-        <div class="panel-title"><h3>Inspecteur</h3><span>vu par le client</span></div>
-        <div class="readout"><span class="status ${ok ? "ok" : "err"}">${ok ? "OK" : esc(r.status)}</span>
-          <span class="dur num">${ms(r.elapsed_ms)}<small>ms</small></span></div>
-        <div class="tabs" role="tablist">${tabs.map(([k, l], i) => `<button role="tab" data-t="${k}" aria-selected="${i === 0}">${l}</button>`).join("")}</div>
+      <div class="card seq"><div class="card-h">${ic("workflow")}<h3>Séquence</h3><small>${P[r.protocol].name} · <span class="mono">${esc(r.method)}</span></small></div>
+        <div class="card-b" id="seqHost"></div></div>
+      <div class="card">
+        <div class="card-h">${ic("scroll-text")}<h3>Inspecteur</h3><small>vu par le client</small></div>
+        <div class="kpis">
+          <div class="kpi"><span>${ic("activity", "sm")}Statut</span><div>${badge(r.status)}</div></div>
+          <div class="kpi"><span>${ic("clock", "sm")}Durée</span><b class="num">${ms(r.elapsed_ms)}<small>ms</small></b></div>
+          <div class="kpi"><span>${ic("arrow-up-right", "sm")}Requête</span><b class="num">${q ?? "—"}<small>o</small></b></div>
+          <div class="kpi"><span>${ic("arrow-right-left", "sm")}Réponse</span><b class="num">${a ?? "—"}<small>o</small></b></div>
+        </div>
+        <div class="tabs" role="tablist">${tabs.map(([k, l, i], n) => `<button role="tab" data-t="${k}" aria-selected="${n === 0}">${ic(i, "sm")}${l}</button>`).join("")}</div>
         <div id="tabBody">${body[tabs[0][0]]}</div>
       </div>
     </div>
-    <p class="note">${NOTES[r.protocol]}</p>`;
+    <p class="note">${ic("info")}<span>${NOTES[r.protocol]}</span></p>`;
   $("#seqHost").appendChild(drawSequence(r));
   const addCopy = () => $$("#tabBody pre.code").forEach(pre => {
     const wrap = document.createElement("div"); wrap.className = "codewrap";
     pre.replaceWith(wrap); wrap.appendChild(pre);
-    const c = document.createElement("button"); c.className = "copy"; c.type = "button"; c.textContent = "Copier";
+    const c = document.createElement("button"); c.className = "copy"; c.type = "button";
+    c.innerHTML = `${ic("copy", "sm")}<span>Copier</span>`;
     c.addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(pre.innerText); c.textContent = "Copié"; }
-      catch { c.textContent = "Copie impossible"; }
-      setTimeout(() => c.textContent = "Copier", 1500);
+      const s = c.querySelector("span");
+      try { await navigator.clipboard.writeText(pre.innerText); s.textContent = "Copié"; c.querySelector("use").setAttribute("href", "/static/icons.svg#i-check"); }
+      catch { s.textContent = "Copie impossible"; }
+      setTimeout(() => { s.textContent = "Copier"; c.querySelector("use").setAttribute("href", "/static/icons.svg#i-copy"); }, 1500);
     });
     wrap.appendChild(c);
   });
@@ -694,7 +813,7 @@ function renderCall(r) {
   }));
 }
 
-/* ── flux : analyseur logique ── */
+/* ── flux ── */
 function drawScope(maxMs, chans) {
   const svg = $("#scopeSvg"); svg.innerHTML = "";
   const L = 215, R = 985, rowH = 70, top = 30;
@@ -704,11 +823,12 @@ function drawScope(maxMs, chans) {
     txt(svg, x, top + rowH * 2 + 24, `${Math.round(maxMs * i / 10)}`, { "text-anchor": "middle" });
   }
   txt(svg, R, 10, "ms", { "text-anchor": "end" });
+  if (!chans.length) txt(svg, (L + R) / 2, 92, "Lancez la mesure pour voir arriver les données", { "text-anchor": "middle", style: "font-family:var(--sans);font-size:14px" });
   chans.forEach((c, k) => {
     const base = top + rowH * (k + 1) - 14;
-    txt(svg, 0, base - 18, c.label, { class: "lbl" });
-    txt(svg, 0, base - 2, c.sub);
-    // signal : niveau bas, impulsion à chaque message reçu
+    el("rect", { x: 0, y: base - 31, width: 8, height: 8, rx: 2, fill: c.color }, svg);
+    txt(svg, 14, base - 23, c.label, { class: "lbl" });
+    txt(svg, 14, base - 6, c.sub);
     let d = `M${L} ${base}`;
     c.times.forEach(t => {
       const x = L + (R - L) * Math.min(t, maxMs) / maxMs;
@@ -719,38 +839,43 @@ function drawScope(maxMs, chans) {
     if (c.count) txt(svg, L + (R - L) * Math.min(c.times[c.times.length - 1], maxMs) / maxMs + 6, base - 38, `×${c.count}`, { fill: c.color });
   });
 }
+function streamStats(stream, tu) {
+  const s = (c, l, v, sub) => `<div class="stat" style="--c:${c}"><span><i></i>${l}</span><b class="num">${v}</b><small>${sub}</small></div>`;
+  return s("var(--ch1)", "Flux, 1re mesure", `${ms(stream[0] ?? 0, 0)} ms`, "client.stream()")
+    + s("var(--ch1)", "Flux, dernière mesure", `${ms(stream[stream.length - 1] ?? 0, 0)} ms`, "client.stream()")
+    + s("var(--ch3)", "Réponse unique, 1re mesure", tu == null ? "—" : `${ms(tu, 0)} ms`, "stream_analytics()")
+    + s("var(--ch3)", "Réponse unique, dernière", tu == null ? "—" : `${ms(tu, 0)} ms`, "stream_analytics()");
+}
 $("#streamBtn").addEventListener("click", async () => {
   const n = +$("#sN").value, iv = +$("#sI").value;
   const maxMs = Math.max(100, Math.ceil(((n - 1) * iv * 1.1 + 60) / 100) * 100);
-  const btn = $("#streamBtn"); btn.disabled = true;
+  const btn = $("#streamBtn"); setBusy(btn, true, "Réception");
   const stream = [], t0 = performance.now();
   drawScope(maxMs, []);
-  await new Promise(resolve => {
-    const es = new EventSource(`/api/stream?n=${n}&interval=${iv}`);
-    es.onmessage = () => {
-      stream.push(performance.now() - t0);
-      drawScope(maxMs, [{ label: "client.stream()", sub: "une trame par mesure", color: "var(--ch1)", times: stream }]);
-    };
-    es.addEventListener("end", () => { es.close(); resolve(); });
-    es.addEventListener("failure", () => { es.close(); resolve(); });
-    es.onerror = () => { es.close(); resolve(); };
-  });
-  const t1 = performance.now();
-  const u = await api("/api/stream_unary", { n, interval: iv });
-  const tu = performance.now() - t1;
-  const unaryTimes = [tu];
-  drawScope(maxMs, [
-    { label: "client.stream()", sub: "une trame par mesure", color: "var(--ch1)", times: stream },
-    { label: "stream_analytics()", sub: "une seule réponse", color: "var(--ch3)", times: unaryTimes, count: u.items.length },
-  ]);
-  $("#streamMeasures").innerHTML = `
-    <div><span>Flux : 1re mesure</span><b class="num">${ms(stream[0] ?? 0, 0)} ms</b></div>
-    <div><span>Flux : dernière</span><b class="num">${ms(stream[stream.length - 1] ?? 0, 0)} ms</b></div>
-    <div><span>Réponse unique : 1re mesure</span><b class="num">${ms(tu, 0)} ms</b></div>
-    <div><span>Réponse unique : dernière</span><b class="num">${ms(tu, 0)} ms</b></div>`;
-  $("#streamNote").hidden = false;
-  $("#streamNote").textContent = "La durée totale ne change presque pas : le capteur ne va pas plus vite. Ce qui change, c'est le moment où le client reçoit la première donnée. Les deux voies sont de vrais appels Custom RPC vers le même capteur, relayés jusqu'au navigateur.";
-  btn.disabled = false;
+  try {
+    await new Promise(resolve => {
+      const es = new EventSource(`/api/stream?n=${n}&interval=${iv}`);
+      es.onmessage = () => {
+        stream.push(performance.now() - t0);
+        drawScope(maxMs, [{ label: "client.stream()", sub: "une trame par mesure", color: "var(--ch1)", times: stream }]);
+        $("#streamMeasures").innerHTML = streamStats(stream, null);
+      };
+      es.addEventListener("end", () => { es.close(); resolve(); });
+      es.addEventListener("failure", () => { es.close(); resolve(); });
+      es.onerror = () => { es.close(); resolve(); };
+    });
+    const t1 = performance.now();
+    const u = await api("/api/stream_unary", { n, interval: iv });
+    const tu = performance.now() - t1;
+    drawScope(maxMs, [
+      { label: "client.stream()", sub: "une trame par mesure", color: "var(--ch1)", times: stream },
+      { label: "stream_analytics()", sub: "une seule réponse", color: "var(--ch3)", times: [tu], count: u.items.length },
+    ]);
+    $("#streamMeasures").innerHTML = streamStats(stream, tu);
+    $("#streamNote").hidden = false;
+    $("#streamNote").innerHTML = `${ic("info")}<span>La durée totale ne change presque pas : le capteur ne va pas plus vite. Ce qui change, c'est le moment où le client reçoit la première donnée. Les deux voies sont de vrais appels Custom RPC vers le même capteur, relayés jusqu'au navigateur.</span>`;
+  } catch (err) { $("#streamNote").hidden = false; $("#streamNote").innerHTML = `${ic("triangle-alert")}<span>${esc(err.message)}</span>`; }
+  finally { setBusy(btn, false, "Relancer"); }
 });
 
 /* ── mesure ── */
@@ -758,26 +883,37 @@ const BCH = n => n.startsWith("Local") ? "var(--ch0)" : n.startsWith("Custom") ?
 function bars(rows, unit, digits) {
   const max = Math.max(...rows.map(r => r.v));
   return `<div class="bars">${rows.map(r => `<span class="lab" style="--c:${r.c}"><i></i>${esc(r.n)}</span>
-    <span class="trk"><span class="bar" style="--c:${r.c};width:${Math.max(0.4, r.v / max * 100)}%"></span></span>
+    <span class="trk"><span class="bar" style="--c:${r.c};width:${Math.max(0.6, r.v / max * 100)}%"></span></span>
     <span class="val num">${ms(r.v, digits)} ${unit}</span>`).join("")}</div>`;
 }
 $("#benchBtn").addEventListener("click", async () => {
   const btn = $("#benchBtn"), t0 = Date.now();
   setBusy(btn, true, "Mesure en cours");
-  const tick = setInterval(() => btn.textContent = `Mesure en cours, ${Math.round((Date.now() - t0) / 1000)} s`, 1000);
+  const tick = setInterval(() => btn.querySelector(".lbl").textContent = `Mesure en cours, ${Math.round((Date.now() - t0) / 1000)} s`, 1000);
   try {
     const b = await api("/api/benchmark", { iterations: +$("#bN").value, operation: $("#bOp").value });
-    let html = b.simulator_active ? `<p class="warn">Une panne est active : ces mesures l'incluent.</p>` : "";
-    html += `<div class="panel-title"><h3>Latence médiane par appel</h3><span>${b.iterations} appels par variante</span></div>`;
-    html += bars(b.results.map(r => ({ n: r.name, v: r.latency_ms.median, c: BCH(r.name) })), "ms", 3);
+    const remote = b.results.filter(r => r.name !== "Local");
+    const best = remote.reduce((x, y) => x.latency_ms.median <= y.latency_ms.median ? x : y);
+    const local = b.results.find(r => r.name === "Local");
+    const errors = b.results.reduce((s, r) => s + r.error_count, 0);
+    const stat = (c, l, v, sub) => `<div class="stat" style="--c:${c}"><span><i></i>${l}</span><b class="num">${v}</b><small>${sub}</small></div>`;
+    let html = b.simulator_active ? errorNote({ message: "Une panne est active : ces mesures l'incluent." }) : "";
+    html += `<div class="stats" style="margin-bottom:20px">
+      ${stat(BCH(best.name), "Distant le plus rapide (médiane)", `${ms(best.latency_ms.median, 3)} ms`, best.name)}
+      ${stat("var(--ch0)", "Appel local (médiane)", `${ms(local.latency_ms.median, 4)} ms`, `${Math.round(best.latency_ms.median / Math.max(local.latency_ms.median, 1e-6)).toLocaleString("fr-FR")} fois plus rapide que le meilleur distant`)}
+      ${stat("var(--brand)", "Appels mesurés", (b.iterations * b.results.length).toLocaleString("fr-FR"), `${b.iterations} par variante`)}
+      ${stat(errors ? "var(--fault)" : "var(--ok)", "Erreurs", errors, errors ? "voir le tableau" : "aucune erreur")}
+    </div>`;
+    html += `<div class="card"><div class="card-h">${ic("chart-no-axes-column")}<h3>Latence médiane par appel</h3><small>${b.iterations} appels par variante</small></div><div class="card-b">`;
+    html += bars(b.results.map(r => ({ n: r.name, v: r.latency_ms.median, c: BCH(r.name) })), "ms", 3) + `</div>`;
     html += `<table><tr><th>Variante</th><th class="r">Min</th><th class="r">Moyenne</th><th class="r">Médiane</th><th class="r">p95</th><th class="r">p99</th><th class="r">Débit (req/s)</th><th class="r">Erreurs</th></tr>` +
-      b.results.map(r => { const l = r.latency_ms; return `<tr><td><span class="sw" style="--c:${BCH(r.name)}"></span>${esc(r.name)}</td>${[l.min, l.mean, l.median, l.p95, l.p99].map(v => `<td class="r mono">${ms(v, 3)}</td>`).join("")}<td class="r mono">${Math.round(r.throughput_rps).toLocaleString("fr-FR")}</td><td class="r mono">${r.error_count}</td></tr>`; }).join("") + `</table>`;
+      b.results.map(r => { const l = r.latency_ms; return `<tr><td><span class="sw" style="--c:${BCH(r.name)}"></span>${esc(r.name)}</td>${[l.min, l.mean, l.median, l.p95, l.p99].map(v => `<td class="r mono">${ms(v, 3)}</td>`).join("")}<td class="r mono">${Math.round(r.throughput_rps).toLocaleString("fr-FR")}</td><td class="r mono">${r.error_count}</td></tr>`; }).join("") + `</table></div>`;
     const sz = b.payload_sizes;
-    html += `<div class="panel-title" style="margin-top:34px"><h3>Octets échangés</h3><span>corps des messages, requête + réponse</span></div>`;
-    html += bars(Object.entries(sz).map(([k, s]) => ({ n: k, v: s.total_bytes, c: BCH(k === "Custom RPC" ? "Custom" : k) })), "o", 0);
-    html += `<p class="note">Valeurs mesurées sur cette machine, en local : elles comparent nos implémentations dans ces conditions, pas les technologies en général.</p>`;
+    html += `<div class="card" style="margin-top:20px"><div class="card-h">${ic("binary")}<h3>Octets échangés</h3><small>corps des messages, requête + réponse</small></div><div class="card-b">`;
+    html += bars(Object.entries(sz).map(([k, s]) => ({ n: k, v: s.total_bytes, c: BCH(k === "Custom RPC" ? "Custom" : k) })), "o", 0) + `</div></div>`;
+    html += `<p class="note">${ic("info")}<span>Valeurs mesurées sur cette machine, en local : elles comparent nos implémentations dans ces conditions, pas les technologies en général.</span></p>`;
     $("#benchOut").innerHTML = html;
-  } catch (err) { $("#benchOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  } catch (err) { $("#benchOut").innerHTML = errorNote(err); }
   finally { clearInterval(tick); setBusy(btn, false, "Mesurer"); }
 });
 
@@ -787,23 +923,28 @@ $("#faultForm").addEventListener("submit", async e => {
   const kind = new FormData(e.target).get("fault");
   const st = await api("/api/faults", { kind, value: kind === "latency" ? +$("#fLat").value : 3 });
   renderFault(st);
-  $("#faultApplied").textContent = st.active_scenario ? `Appliqué : ${faultText(st.active_scenario).toLowerCase()}.` : "Réseau rétabli.";
+  $("#faultApplied").innerHTML = st.active_scenario
+    ? `${ic("triangle-alert", "sm")}<span>Appliqué : ${esc(faultText(st.active_scenario).toLowerCase())}.</span>`
+    : `${ic("circle-check", "sm")}<span>Réseau rétabli.</span>`;
 });
 $("#fLat").addEventListener("focus", () => { $('input[name=fault][value=latency]').checked = true; });
 const EXPS = [
-  ["latency", "Latence ajoutée", "Médiane de 5 appels avec 0, 50 puis 200 ms de latence, en local et sur chaque protocole."],
-  ["timeout", "Serveur trop lent", "Le serveur met 1 s à répondre, le client n'attend que 0,3 s."],
-  ["server_down", "Serveur éteint", "Personne n'écoute sur le port. Une fonction locale, elle, ne peut pas être indisponible."],
-  ["retry_restart", "Redémarrage et nouvelle tentative", "Le serveur revient après 0,5 s : le client naïf échoue, le client avec retry et backoff réussit."],
-  ["idempotence", "Retry sur update_stock", "La première requête s'exécute trop tard ; le client a déjà réessayé. Combien d'unités sont retirées ?"],
+  ["latency", "timer", "var(--warn)", "Latence ajoutée", "Médiane de 5 appels avec 0, 50 puis 200 ms de latence, en local et sur chaque protocole.", true],
+  ["timeout", "hourglass", "var(--warn)", "Serveur trop lent", "Le serveur met 1 s à répondre, le client n'attend que 0,3 s.", true],
+  ["server_down", "power-off", "var(--fault)", "Serveur éteint", "Personne n'écoute sur le port. Une fonction locale, elle, ne peut pas être indisponible.", true],
+  ["retry_restart", "refresh-cw", "var(--ch2)", "Redémarrage et nouvelle tentative", "Le serveur revient après 0,5 s : le client naïf échoue, le client avec retry et backoff réussit."],
+  ["idempotence", "repeat-2", "var(--ch3)", "Retry sur update_stock", "La première requête s'exécute trop tard ; le client a déjà réessayé. Combien d'unités sont retirées ?"],
 ];
-$("#expList").innerHTML = EXPS.map(([id, t, d]) => `<div class="exp"><h3>${t}</h3><p>${d}</p><button class="btn" data-exp="${id}">Lancer</button><div class="out" id="out-${id}"></div></div>`).join("");
+$("#expList").innerHTML = EXPS.map(([id, icon, c, t, d, wide]) => `<div class="card exp${wide ? " wide" : ""}"><div class="card-b">
+  <div class="row"><div class="tile sm" style="--c:${c}">${ic(icon, "sm")}</div><div style="flex:1"><h3>${t}</h3><p>${d}</p></div>
+  <button class="btn" data-exp="${id}">${ic("play", "sm")}<span class="lbl">Lancer</span></button></div>
+  <div class="out" id="out-${id}"></div></div></div>`).join("");
 function renderExp(id, d) {
   const T = (head, rows) => `<table><tr>${head.map((h, i) => `<th${i ? ' class="r"' : ""}>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map((c, i) => `<td${i ? ' class="r mono"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</table>`;
-  if (id === "latency") return T(["Latence ajoutée", "Local", "Custom RPC", "gRPC", "REST"], d.map(r => [`${r.latence_injectee_ms} ms`, ms(r.local, 4), ms(r.custom_rpc), ms(r.grpc), ms(r.rest)])) + `<p class="subtle">Médianes en millisecondes.</p>`;
+  if (id === "latency") return T(["Latence ajoutée", "Local", "Custom RPC", "gRPC", "REST"], d.map(r => [`${r.latence_injectee_ms} ms`, ms(r.local, 4), ms(r.custom_rpc), ms(r.grpc), ms(r.rest)])) + `<p class="subtle" style="margin-top:8px">Médianes en millisecondes.</p>`;
   if (id === "timeout") return `<table><tr><th>Protocole</th><th>Erreur reçue</th><th class="r">Attente</th></tr>${d.map(r => `<tr><td>${r.protocole}</td><td class="mono">${esc(r.erreur)}</td><td class="r mono">${ms(r.attente_ms, 0)} ms</td></tr>`).join("")}</table>`;
   if (id === "server_down") return `<table><tr><th>Protocole</th><th>Ce que reçoit l'appelant</th></tr>${d.map(r => `<tr><td>${r.protocole}</td><td class="mono">${esc(r.resultat)}</td></tr>`).join("")}</table>`;
-  if (id === "retry_restart") return `<p class="bad">Client naïf : ${esc(d.naive)}</p><ul class="log">${d.retries_log.map(l => `<li>${esc(l)}</li>`).join("")}</ul><p class="good">Client avec retry : ${esc(d.robust)}</p>`;
+  if (id === "retry_restart") return `<p class="outline bad">${ic("circle-x", "sm")}Client naïf : ${esc(d.naive)}</p><ul class="log">${d.retries_log.map(l => `<li>${ic("rotate-ccw", "sm")}${esc(l)}</li>`).join("")}</ul><p class="outline good">${ic("circle-check", "sm")}Client avec retry : ${esc(d.robust)}</p>`;
   if (id === "idempotence") return `<table><tr><th>Version</th><th class="r">Unités retirées (attendu : 1)</th></tr>
     <tr><td>Retry naïf</td><td class="r mono ${d.naif.retire === 1 ? "good" : "bad"}">${d.naif.retire}</td></tr>
     <tr><td>Retry avec clé d'idempotence</td><td class="r mono ${d.idempotent.retire === 1 ? "good" : "bad"}">${d.idempotent.retire}</td></tr></table>`;
@@ -811,31 +952,40 @@ function renderExp(id, d) {
 }
 $$("[data-exp]").forEach(b => b.addEventListener("click", async () => {
   const id = b.dataset.exp, out = $("#out-" + id);
-  b.disabled = true; b.textContent = "En cours…"; out.innerHTML = "";
+  setBusy(b, true, "En cours"); out.innerHTML = "";
   try { out.innerHTML = renderExp(id, await api(`/api/experiment/${id}`, {})); }
-  catch (err) { out.innerHTML = `<p class="note">${esc(err.message)}</p>`; }
-  finally { b.disabled = false; b.textContent = "Relancer"; }
+  catch (err) { out.innerHTML = errorNote(err); }
+  finally { setBusy(b, false, "Relancer"); }
 }));
 
 /* ── contrat ── */
-const vcls = v => v.startsWith("COMPATIBLE") ? "good" : v.includes("SILENCIEUX") ? "bad" : "meh";
+const vkind = v => v.startsWith("COMPATIBLE") ? "ok" : v.includes("SILENCIEUX") ? "err" : "warn";
 const vtxt = v => v.startsWith("COMPATIBLE") ? "Compatible" : v.includes("SILENCIEUX") ? "Casse sans erreur" : v.includes("trompeur") ? "Casse, message trompeur" : "Casse, erreur visible";
+const vicon = { ok: "circle-check", warn: "triangle-alert", err: "octagon-x" };
 $("#contractBtn").addEventListener("click", async () => {
-  const btn = $("#contractBtn"); btn.disabled = true; btn.textContent = "Démarrage du serveur v2…";
+  const btn = $("#contractBtn"); setBusy(btn, true, "Démarrage du serveur v2");
   try {
     const d = await api("/api/experiment/contract", {});
-    const tbl = (title, sub, rows) => `<div class="panel-title" style="margin-top:8px"><h3>${title}</h3><span>${sub}</span></div>
-      <table style="margin-bottom:30px"><tr><th>Appel du client v1</th><th>Changement côté serveur v2</th><th>Ce qu'observe le client</th><th>Verdict</th></tr>
-      ${rows.map(r => `<tr><td class="mono">${esc(r.scenario)}</td><td>${esc(r.change)}</td><td>${esc(r.observed)}</td><td class="${vcls(r.verdict)}">${vtxt(r.verdict)}</td></tr>`).join("")}</table>`;
-    $("#contractOut").innerHTML = tbl("Custom RPC", "les arguments voyagent par nom", d.custom_rpc) + tbl("gRPC", "les champs voyagent par numéro", d.grpc) +
-      `<p class="note">Le cas le plus grave : UpdateStock répond « succès » mais le stock n'a pas bougé, parce que le numéro du champ quantity_delta a changé entre les deux versions du .proto.</p>`;
-  } catch (err) { $("#contractOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
-  finally { btn.disabled = false; btn.textContent = "Relancer l'expérience"; }
+    const all = [...d.custom_rpc, ...d.grpc];
+    const count = k => all.filter(r => vkind(r.verdict) === k).length;
+    const stat = (c, l, v, sub) => `<div class="stat" style="--c:${c}"><span><i></i>${l}</span><b class="num">${v}</b><small>${sub}</small></div>`;
+    const tbl = (title, sub, color, rows) => `<div class="card" style="margin-bottom:20px"><div class="card-h"><span class="sw" style="--c:${color};width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--c)"></span><h3>${title}</h3><small>${sub}</small></div>
+      <table><tr><th>Appel du client v1</th><th>Changement côté serveur v2</th><th>Ce qu'observe le client</th><th>Verdict</th></tr>
+      ${rows.map(r => { const k = vkind(r.verdict); return `<tr><td class="mono">${esc(r.scenario)}</td><td>${esc(r.change)}</td><td>${esc(r.observed)}</td><td><span class="badge ${k}">${ic(vicon[k])}${vtxt(r.verdict)}</span></td></tr>`; }).join("")}</table></div>`;
+    $("#contractOut").innerHTML = `<div class="summary">
+        ${stat("var(--ok)", "Compatibles", count("ok"), "le client v1 continue de fonctionner")}
+        ${stat("var(--warn)", "Cassent avec une erreur", count("warn"), "le problème se voit")}
+        ${stat("var(--fault)", "Cassent sans erreur", count("err"), "le plus dangereux")}
+      </div>` + tbl("Custom RPC", "les arguments voyagent par nom", "var(--ch1)", d.custom_rpc) + tbl("gRPC", "les champs voyagent par numéro", "var(--ch2)", d.grpc) +
+      `<p class="note">${ic("triangle-alert")}<span>Le cas le plus grave : UpdateStock répond « succès » mais le stock n'a pas bougé, parce que le numéro du champ quantity_delta a changé entre les deux versions du .proto.</span></p>`;
+  } catch (err) { $("#contractOut").innerHTML = errorNote(err); }
+  finally { setBusy(btn, false, "Relancer l'expérience"); }
 });
 
 setProto("custom");
 showView(location.hash.slice(1) || "call");
-loadInfo().catch(err => $("#callOut").innerHTML = `<p class="note">Impossible de joindre le tableau de bord : ${esc(err.message)}</p>`);
+drawScope(2600, []);
+loadInfo().catch(err => $("#callOut").innerHTML = errorNote({ message: `Impossible de joindre le tableau de bord : ${err.message}` }));
 </script>
 </body>
 </html>
