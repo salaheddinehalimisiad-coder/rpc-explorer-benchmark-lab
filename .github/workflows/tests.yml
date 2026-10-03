@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Les stubs générés (protos/inventory_pb2*.py) dépendent de la version
+      # de protobuf installée : on les régénère depuis le contrat .proto pour
+      # que le code généré corresponde toujours au runtime de la CI.
+      - name: Regenerate gRPC stubs
+        run: python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. protos/inventory.proto
+
+      - name: Run tests
+        run: pytest tests/
