@@ -1,0 +1,8 @@
+Polices embarquées dans le tableau de bord (licence SIL Open Font License 1.1) :
+
+- Instrument Sans — Copyright 2022 The Instrument Sans Project Authors
+  https://github.com/Instrument/instrument-sans
+- Martian Mono — Copyright 2020 The Martian Mono Project Authors
+  https://github.com/evilmartians/mono
+
+Texte de la licence : https://openfontlicense.org

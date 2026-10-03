@@ -267,6 +267,11 @@ class Dashboard:
         def index():
             return send_from_directory(STATIC_DIR, "index.html")
 
+        @app.get("/static/<path:filename>")
+        def static_files(filename):
+            # Polices embarquées : le tableau de bord fonctionne sans Internet.
+            return send_from_directory(STATIC_DIR, filename, max_age=86400)
+
         @app.get("/api/info")
         def api_info():
             return jsonify(self.info())
