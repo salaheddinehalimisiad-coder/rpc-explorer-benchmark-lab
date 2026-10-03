@@ -439,54 +439,63 @@ Ce projet permet de comprendre :
 
 ## 📋 Roadmap
 
-### Phase 01 — Architecture & Structure ✅ (EN COURS)
+État au 26 septembre 2026, d'après les rapports `docs/phase_XX_report.md` et [`PROJECT_AUDIT.md`](PROJECT_AUDIT.md). Suite de tests : **188/188 PASS** (`python -m pytest`).
+
+### Phase 00 — Audit du projet ✅ TERMINÉE
+- [x] Audit initial du dépôt ([`PROJECT_AUDIT.md`](PROJECT_AUDIT.md))
+
+### Phase 01 — Architecture & Structure ✅ TERMINÉE ([rapport](docs/phase_01_report.md))
 - [x] Arborescence du projet
-- [x] Documentation architecturale
-- [ ] Environnement de développement
-- [ ] Git & .gitignore
-- [ ] README
+- [x] Documentation architecturale ([`docs/architecture.md`](docs/architecture.md))
+- [x] Environnement de développement (`pyproject.toml`, `requirements.txt`)
+- [x] Git & .gitignore
+- [x] README
 
-### Phase 02 — Custom RPC Core (À VENIR)
-- [ ] Serializer
-- [ ] Client Stub
-- [ ] Server Skeleton
-- [ ] Tests unitaires
+### Phase 02 — Custom RPC Core ✅ TERMINÉE ([rapport](docs/phase_02_report.md))
+- [x] Serializer JSON
+- [x] Transport TCP avec framing par longueur
+- [x] Client Stub
+- [x] Server Skeleton / Dispatcher
+- [x] Tests unitaires et d'intégration
 
-### Phase 03 — Service Métier (À VENIR)
-- [ ] Fonctions métier
-- [ ] Tests indépendants
+### Phase 03 — Service Métier ✅ TERMINÉE ([rapport](docs/phase_03_report.md))
+- [x] Fonctions métier (`InventoryService` : factorielle, produits, stock, analytics)
+- [x] Tests indépendants du transport
 
-### Phase 04 — gRPC (À VENIR)
-- [ ] Contrat Protobuf
-- [ ] Serveur gRPC
-- [ ] Client gRPC
-- [ ] Streaming
+### Phase 04 — gRPC ✅ TERMINÉE ([rapport](docs/phase_04_report.md))
+- [x] Contrat Protobuf (`protos/inventory.proto`)
+- [x] Serveur gRPC
+- [x] Client gRPC
+- [x] Streaming
 
-### Phase 05 — REST (À VENIR)
-- [ ] Serveur REST
-- [ ] Client REST
-- [ ] Endpoints
+### Phase 05 — REST ✅ TERMINÉE ([rapport](docs/phase_05_report.md))
+- [x] Serveur REST (Flask)
+- [x] Client REST
+- [x] Endpoints
 
-### Phase 06 — Under the Hood (À VENIR)
-- [ ] Visualisation du cycle RPC
+### Phase 06 — Benchmark Engine ✅ TERMINÉE ([rapport](docs/phase_06_report.md))
+- [x] Runner (`benchmark/benchmark_runner.py`)
+- [x] Métriques (`benchmark/metrics.py`)
+- [x] Comparaison Local / Custom RPC / gRPC / REST
 
-### Phase 07 — Benchmark Engine (À VENIR)
-- [ ] Runner
-- [ ] Métriques
-- [ ] Comparaison
+### Phase 07 — Failure Simulation ✅ TERMINÉE ([rapport](docs/phase_07_report.md))
+- [x] Latence artificielle
+- [x] Timeout
+- [x] Déconnexion / serveur indisponible
+- [x] Corruption de messages
 
-### Phase 08 — Failure Simulation (À VENIR)
-- [ ] Latence artificielle
-- [ ] Timeout
-- [ ] Déconnexion
+### Under the Hood (À VENIR)
+- [ ] Visualisation du cycle RPC (`under_the_hood/tracer.py` est encore un squelette)
 
-### Phase 09 — CLI / Dashboard (À VENIR)
-- [ ] Menu interactif
+### CLI / Dashboard (À VENIR)
+- [ ] Menu interactif (`cli/cli_runner.py` est encore un squelette)
 - [ ] Interface utilisateur
 
-### Phase 10 — Contract Evolution (À VENIR)
+### Contract Evolution (À VENIR)
 - [ ] Versioning
 - [ ] Breaking changes
+
+> La numérotation des phases restantes n'est pas encore fixée.
 
 ---
 
