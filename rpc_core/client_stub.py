@@ -13,7 +13,7 @@ Le stub permet d'appeler des méthodes distantes comme si elles étaient locales
 import socket
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Iterator
 from .serializer import RPCSerializer
 from .transport import send_message, receive_message, TransportError, ConnectionClosedError
 
@@ -210,6 +210,66 @@ class RPCClient:
 
         self._trace("RESULT -> rendu à l'appelant", call_id, resultat=response.get("result"))
         return response.get("result")
+
+    def stream(self, method: str, **kwargs) -> Iterator[Any]:
+        """
+        Appel en STREAMING : retourne un itérateur qui produit les éléments au fur
+        et à mesure de leur arrivée (une trame réseau par élément).
+
+            for event in client.stream("stream_analytics", metric_name="cpu_usage", num_events=5):
+                print(event)   # affiché dès réception, sans attendre la fin du flux
+
+        Le flux utilise sa propre connexion TCP, fermée à la fin (ou si l'appelant
+        arrête d'itérer avant la fin : le serveur s'en aperçoit et s'arrête).
+        Le timeout s'applique à l'attente de CHAQUE trame.
+        """
+        req_bytes = self.serializer.serialize_request(method=method, args=kwargs,
+                                                      metadata={"stream": True})
+        call_id = None
+        if self.tracer is not None:
+            call_id = self.serializer.deserialize_request(req_bytes)["id"]
+            self._trace("CLIENT_CALL (flux)", call_id, code=f"client.stream({method!r}, {kwargs})")
+            self._trace("STUB_MARSHAL + SERIALIZE (JSON)", call_id, payload=req_bytes,
+                        taille=f"{len(req_bytes)} octets")
+        return self._stream_frames(req_bytes, call_id)
+
+    def _stream_frames(self, req_bytes: bytes, call_id: Optional[str]) -> Iterator[Any]:
+        sock = self.connect()
+        try:
+            try:
+                send_message(sock, req_bytes)
+            except TransportError as err:
+                raise ConnectionError(f"Erreur de communication réseau : {err}") from err
+            while True:
+                try:
+                    frame_bytes = receive_message(sock)
+                except (socket.timeout, TimeoutError) as err:
+                    raise TimeoutError(
+                        f"Timeout ({self.timeout}s) dépassé en attendant la trame suivante du flux."
+                    ) from err
+                except ConnectionClosedError as err:
+                    raise ConnectionError(f"Flux interrompu : le serveur a fermé la connexion ({err}).") from err
+                except TransportError as err:
+                    raise ConnectionError(f"Erreur de communication réseau : {err}") from err
+                frame = self.serializer.deserialize_response(frame_bytes)
+                kind = (frame.get("metadata") or {}).get("stream")
+                if frame.get("error") is not None:
+                    err = frame["error"]
+                    self._trace("STREAM_ERROR", call_id, erreur=err.get("code"))
+                    raise RPCError(code=err.get("code", "RPC_GENERIC_ERROR"),
+                                   message=err.get("message", "Erreur distante pendant le flux"),
+                                   data=err.get("data"))
+                if kind == "end":
+                    self._trace("STREAM_END reçu", call_id, nombre=frame["metadata"].get("count"))
+                    return
+                self._trace(f"STREAM_RECEIVE trame n°{frame['metadata'].get('seq')}", call_id,
+                            taille=f"{len(frame_bytes)} octets")
+                yield frame.get("result")
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
 
     def call_async(self, method: str, **kwargs) -> Future:
         """

@@ -5,6 +5,15 @@ Ce module fournit le serveur RPC Custom avec dispatcher et skeleton.
 
 Le serveur écoute sur un socket TCP et dispatche les requêtes vers les fonctions métier autorisées.
 
+STREAMING (serveur -> client)
+Une méthode enregistrée avec `register_stream()` retourne un itérateur. Si la
+requête porte `metadata.stream = true`, le serveur envoie une trame par élément :
+    {"id", "result": <élément>, "error": null, "metadata": {"stream": "data", "seq": n}}
+puis une trame de fin :
+    {"id", "result": null, "error": null, "metadata": {"stream": "end", "count": N}}
+(ou une trame avec "error" et metadata.stream = "error" si l'itérateur échoue).
+Chaque trame reste une réponse RPC valide : le sérialiseur n'a pas changé.
+
 Architecture:
     NETWORK
         ↓
@@ -84,6 +93,7 @@ class RPCServer:
         self.failure_simulator = failure_simulator
         self.tracer = tracer
         self.methods: Dict[str, Callable] = {}
+        self.stream_methods: Dict[str, Callable] = {}
         self.serializer = RPCSerializer()
         self.running = False
         self._server_socket: Optional[socket.socket] = None
@@ -101,6 +111,19 @@ class RPCServer:
         """Enregistre plusieurs méthodes d'un objet métier dans la table blanche."""
         for name in method_names:
             self.register_method(name, getattr(service, name))
+
+    def register_stream(self, name: str, generator_function: Callable):
+        """
+        Enregistre une méthode de STREAMING (elle doit retourner un itérateur).
+
+        Le même nom peut aussi être enregistré avec register_method() : le client
+        choisit alors entre réponse unique (call) et flux (stream).
+        """
+        if not name or not isinstance(name, str):
+            raise ValueError("Le nom de méthode doit être une chaîne non vide.")
+        if not callable(generator_function):
+            raise TypeError("Le second argument doit être un callable retournant un itérateur.")
+        self.stream_methods[name] = generator_function
 
     def register_method(self, name: str, function: Callable):
         """
@@ -190,6 +213,10 @@ class RPCServer:
                                 depuis=f"{address[0]}:{address[1]}",
                                 octets_recus=len(request_bytes),
                                 message_decode={"method": request.get("method"), "args": request.get("args")})
+                    if (request.get("metadata") or {}).get("stream"):
+                        if not self._dispatch_stream(client_socket, request):
+                            break
+                        continue
                     response_dict = self._dispatch(request)
                 except ValueError as val_err:
                     response_dict = {
@@ -233,6 +260,65 @@ class RPCServer:
                 client_socket.close()
             except OSError:
                 pass
+
+    def _send_frame(self, sock, req_id, result=None, error=None, metadata=None) -> bool:
+        data = self.serializer.serialize_response(req_id, result=result, error=error, metadata=metadata)
+        try:
+            send_message(sock, data)
+            return True
+        except TransportError:
+            return False
+
+    def _dispatch_stream(self, sock: socket.socket, request: Dict[str, Any]) -> bool:
+        """
+        Exécute une méthode de streaming et envoie une trame par élément produit.
+
+        Returns:
+            False si la connexion est perdue (le client est parti) : on arrête
+            alors l'itérateur au lieu de produire des données pour personne.
+        """
+        req_id = request["id"]
+        method_name = request["method"]
+        args = request.get("args", {})
+        self._trace("DISPATCH (table blanche des flux)", req_id, methode=method_name,
+                    autorisee=method_name in self.stream_methods)
+        if method_name not in self.stream_methods:
+            return self._send_frame(sock, req_id, error={
+                "code": "STREAM_NOT_SUPPORTED",
+                "message": f"La méthode '{method_name}' n'est pas disponible en streaming.",
+                "data": {"stream_methods": list(self.stream_methods.keys())},
+            }, metadata={"stream": "error"})
+        try:
+            iterator = iter(self.stream_methods[method_name](**args))
+        except TypeError as exc:
+            return self._send_frame(sock, req_id, error={
+                "code": "INVALID_ARGS", "message": f"Arguments invalides pour '{method_name}' : {exc}",
+                "data": {"provided_args": list(args.keys())}}, metadata={"stream": "error"})
+        except Exception as exc:
+            return self._send_frame(sock, req_id, error={
+                "code": "EXECUTION_ERROR", "message": str(exc),
+                "data": {"exception_type": type(exc).__name__}}, metadata={"stream": "error"})
+
+        count = 0
+        try:
+            for item in iterator:
+                count += 1
+                self._trace(f"STREAM_SEND trame n°{count}", req_id, element=item)
+                if not self._send_frame(sock, req_id, result=item,
+                                        metadata={"stream": "data", "seq": count}):
+                    self._trace("STREAM_ABORT (client parti)", req_id, trames_envoyees=count - 1)
+                    return False
+        except Exception as exc:
+            return self._send_frame(sock, req_id, error={
+                "code": "EXECUTION_ERROR", "message": str(exc),
+                "data": {"exception_type": type(exc).__name__, "items_sent": count}},
+                metadata={"stream": "error"})
+        finally:
+            close = getattr(iterator, "close", None)
+            if close:
+                close()
+        self._trace("STREAM_END", req_id, trames_envoyees=count)
+        return self._send_frame(sock, req_id, metadata={"stream": "end", "count": count})
 
     def _dispatch(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """

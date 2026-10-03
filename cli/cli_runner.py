@@ -59,6 +59,8 @@ def invoke(lab_or_clients, protocol: str, method: str, args: Dict[str, Any],
     lab = lab_or_clients
     if protocol == "custom":
         client = lab.custom_client(timeout=timeout, tracer=tracer)
+        if method == "stream_analytics":
+            return list(client.stream(method, **args))  # vrai flux, trame par trame
         return client.call(method, **args)
     if protocol == "grpc":
         client = lab.grpc_client(timeout=timeout, interceptors=interceptors)
@@ -199,6 +201,7 @@ class CLIRunner:
             ("7", "Démo complète des pannes (local ≠ distant, retry, idempotence)", self.run_failure_demo),
             ("8", "Démo évolution de contrat (v1 vs v2)", self._demo_contract),
             ("9", "Historique des appels", self.action_history),
+            ("10", "Démo réponse unique vs streaming", self._demo_streaming),
             ("0", "Quitter", None),
         ]
 
@@ -213,6 +216,10 @@ class CLIRunner:
     def _demo_benchmark(self):
         n = int(self._ask("Nombre d'itérations", "500"))
         self.run_benchmark_mode(n)
+
+    def _demo_streaming(self):
+        from lab.streaming import run_streaming_demo
+        run_streaming_demo()
 
     def _demo_contract(self):
         from contract_evolution.demo import run_contract_demo

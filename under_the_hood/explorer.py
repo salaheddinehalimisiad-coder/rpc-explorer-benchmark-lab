@@ -72,7 +72,11 @@ def run_under_the_hood_demo(method: str = "calculate_factorial", args: Dict[str,
         # 1. Custom RPC ---------------------------------------------------
         section("1) CUSTOM RPC — JSON sur socket TCP (notre propre middleware)")
         client = lab.custom_client(tracer=tracer)
-        result = getattr(client, method)(**args)  # <- ressemble à un appel local !
+        if method == "stream_analytics":
+            print("Appel en STREAMING : client.stream(\"stream_analytics\", ...) → une trame par événement.")
+            result = list(client.stream(method, **args))
+        else:
+            result = getattr(client, method)(**args)  # <- ressemble à un appel local !
         tracer.display_trace(tracer.call_ids()[-1])
         print(f"\nRésultat reçu : {result!r}")
         explain("""

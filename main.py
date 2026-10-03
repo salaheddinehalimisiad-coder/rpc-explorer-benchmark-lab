@@ -9,6 +9,7 @@ Point d'entrée principal : RPC Explorer & Benchmark Lab
     python main.py --benchmark             banc d'essai comparatif (--iterations, --warmup)
     python main.py --simulate-failures     latence, timeout, panne, retry, idempotence
     python main.py --contract-demo         évolution de contrat (client v1 / serveur v2)
+    python main.py --streaming-demo        réponse unique vs streaming (Custom RPC)
 
 Mode « vrai réseau » (deux terminaux, voire deux machines) :
     python main.py --serve all --trace                           # terminal 1
@@ -37,6 +38,7 @@ def parse_arguments(argv=None):
     modes.add_argument("--benchmark", action="store_true", help="banc d'essai comparatif")
     modes.add_argument("--simulate-failures", action="store_true", help="démonstration des pannes")
     modes.add_argument("--contract-demo", action="store_true", help="évolution de contrat v1/v2")
+    modes.add_argument("--streaming-demo", action="store_true", help="réponse unique vs streaming")
     modes.add_argument("--serve", choices=["custom", "grpc", "rest", "all"],
                        help="lancer un serveur au premier plan (Ctrl+C pour arrêter)")
     modes.add_argument("--call", nargs="+", metavar=("PROTOCOLE METHODE", "nom=valeur"),
@@ -111,12 +113,14 @@ def run_full_demo(args) -> int:
     from contract_evolution.demo import run_contract_demo
     from lab.benchmark import run_benchmark
     from lab.failures import run_failure_demo
+    from lab.streaming import run_streaming_demo
     from lab.transparency import run_transparency_demo
     from under_the_hood.explorer import run_under_the_hood_demo
     title("DÉMONSTRATION COMPLÈTE — 5 étapes")
     run_transparency_demo()                                  # 1-3 appel local / RPC / REST
     run_under_the_hood_demo("update_stock")                  # 4-6 sous le capot + Protobuf
     run_under_the_hood_demo("stream_analytics")              # 7  streaming
+    run_streaming_demo()                                     # 7b réponse unique vs flux
     run_benchmark(iterations=min(args.iterations, 500), warmup=min(args.warmup, 50),
                   output_dir=None if args.no_save else "results")  # 8
     run_failure_demo()                                       # 9-11 latence, timeout, panne
@@ -152,6 +156,10 @@ def main(argv=None) -> int:
     if args.transparency_demo:
         from lab.transparency import run_transparency_demo
         run_transparency_demo()
+        return 0
+    if args.streaming_demo:
+        from lab.streaming import run_streaming_demo
+        run_streaming_demo()
         return 0
     if args.contract_demo:
         from contract_evolution.demo import run_contract_demo

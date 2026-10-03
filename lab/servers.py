@@ -46,6 +46,8 @@ def build_custom_server(
 ) -> RPCServer:
     server = RPCServer(host=host, port=port, tracer=tracer, failure_simulator=failure_simulator)
     server.register_service(service, EXPOSED_METHODS)
+    # Même nom, version flux : client.stream("stream_analytics", ...)
+    server.register_stream("stream_analytics", service.stream_analytics_iter)
     return server
 
 

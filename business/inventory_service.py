@@ -8,14 +8,15 @@ Méthodes implémentées :
 - calculate_factorial : Calcul intensif de factorielle (itératif)
 - get_product_details : Consultation des détails d'un article en stock
 - update_stock : Modification de la quantité en stock (thread-safe)
-- stream_analytics : Simulation de flux de métriques (réponse JSON unique)
+- stream_analytics : flux de métriques (liste complète) + stream_analytics_iter (générateur, pour le streaming)
 
 STATUT: IMPLÉMENTÉ — Phase 03
 """
 
 import threading
+import time
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Iterator, List, Optional
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -261,31 +262,8 @@ class InventoryService:
     # 4. stream_analytics
     # ─────────────────────────────────────────────────────────────────────────
 
-    def stream_analytics(self, metric_name: str, num_events: int = 10) -> List[Dict[str, Any]]:
-        """
-        Simule la production d'un flux de métriques au niveau métier.
-
-        IMPORTANT : Cette méthode ne constitue pas encore un streaming réseau
-        RPC natif. Le protocole Custom RPC actuel est synchrone request/response.
-        La réponse est donc une liste complète d'événements retournée en une
-        seule réponse JSON. Le vrai streaming réseau pourra être étudié
-        ultérieurement dans la partie gRPC si le cahier des charges le prévoit.
-
-        Args:
-            metric_name: Nom de la métrique à observer.
-                         Valeurs supportées : cpu_usage, memory_usage,
-                         request_rate, error_rate.
-            num_events: Nombre d'événements à générer (par défaut 10, max 100).
-
-        Returns:
-            list[dict]: Liste d'événements de télémétrie, chacun contenant :
-                        metric, value, unit, timestamp, sequence.
-
-        Raises:
-            ValueError: Si metric_name n'est pas une chaîne non vide.
-            ValueError: Si metric_name n'est pas une métrique supportée.
-            ValueError: Si num_events n'est pas un entier positif ou dépasse 100.
-        """
+    def _validate_stream_args(self, metric_name: str, num_events: int) -> Dict[str, Any]:
+        """Valide les arguments de stream_analytics et retourne la spécification de la métrique."""
         if not isinstance(metric_name, str) or not metric_name.strip():
             raise ValueError(
                 f"Le paramètre 'metric_name' doit être une chaîne non vide. Reçu : {metric_name!r}"
@@ -307,10 +285,57 @@ class InventoryService:
             raise ValueError(
                 f"Le paramètre 'num_events' doit être compris entre 1 et 100. Reçu : {num_events}"
             )
+        return SUPPORTED_METRICS[metric_name]
 
-        metric_spec = SUPPORTED_METRICS[metric_name]
-        events = list(self._generate_events(metric_name, metric_spec, num_events))
-        return events
+    def stream_analytics(self, metric_name: str, num_events: int = 10) -> List[Dict[str, Any]]:
+        """
+        Produit un lot de métriques et le retourne EN UNE SEULE FOIS (liste complète).
+
+        C'est la variante « requête/réponse » : l'appelant attend que tous les
+        événements soient prêts. Pour la variante événement par événement, voir
+        `stream_analytics_iter` (exposée en vrai streaming par le Custom RPC).
+
+        Args:
+            metric_name: Nom de la métrique à observer.
+                         Valeurs supportées : cpu_usage, memory_usage,
+                         request_rate, error_rate.
+            num_events: Nombre d'événements à générer (par défaut 10, max 100).
+
+        Returns:
+            list[dict]: Liste d'événements de télémétrie, chacun contenant :
+                        metric, value, unit, timestamp, sequence.
+
+        Raises:
+            ValueError: Si metric_name n'est pas une chaîne non vide.
+            ValueError: Si metric_name n'est pas une métrique supportée.
+            ValueError: Si num_events n'est pas un entier positif ou dépasse 100.
+        """
+        metric_spec = self._validate_stream_args(metric_name, num_events)
+        return list(self._generate_events(metric_name, metric_spec, num_events))
+
+    def stream_analytics_iter(
+        self, metric_name: str, num_events: int = 10, interval_ms: float = 0.0
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Variante GÉNÉRATRICE : produit les événements un par un.
+
+        `interval_ms` simule un capteur qui ne produit une mesure que toutes
+        les N millisecondes : c'est là que le streaming prend tout son sens
+        (le client reçoit la 1re mesure sans attendre la dernière).
+
+        La validation est faite immédiatement (avant le premier événement).
+        """
+        metric_spec = self._validate_stream_args(metric_name, num_events)
+        if not isinstance(interval_ms, (int, float)) or isinstance(interval_ms, bool) \
+                or interval_ms < 0 or interval_ms > 5000:
+            raise ValueError(f"'interval_ms' doit être compris entre 0 et 5000. Reçu : {interval_ms!r}")
+
+        def _gen():
+            for i, event in enumerate(self._generate_events(metric_name, metric_spec, num_events)):
+                if i and interval_ms:
+                    time.sleep(interval_ms / 1000.0)
+                yield event
+        return _gen()
 
     @staticmethod
     def _generate_events(
