@@ -19,7 +19,7 @@ class TestProjectStructure(unittest.TestCase):
         required_dirs = [
             "rpc_core",
             "protos",
-            "grpc",
+            "grpc_impl",
             "rest",
             "business",
             "benchmark",
@@ -73,7 +73,7 @@ class TestProjectStructure(unittest.TestCase):
         packages = [
             "rpc_core",
             "business",
-            "grpc",
+            "grpc_impl",
             "rest",
             "benchmark",
             "benchmark/adapters",

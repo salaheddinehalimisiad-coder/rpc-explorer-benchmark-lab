@@ -55,8 +55,8 @@ class TestImportsAndInterfaces(unittest.TestCase):
 
     def test_grpc_layer_imports(self):
         """Vérifie l'importation et l'interface des composants gRPC."""
-        from grpc.grpc_server import InventoryGRPCServer, InventoryServicer
-        from grpc.grpc_client import InventoryGRPCClient
+        from grpc_impl.grpc_server import InventoryGRPCServer, InventoryServicer
+        from grpc_impl.grpc_client import InventoryGRPCClient
         import grpc
 
         server = InventoryGRPCServer(port=0)

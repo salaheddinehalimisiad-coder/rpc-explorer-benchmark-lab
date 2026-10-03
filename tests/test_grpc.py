@@ -18,8 +18,8 @@ import grpc
 from business.inventory_service import InventoryService
 from protos import inventory_pb2
 from protos import inventory_pb2_grpc
-from grpc.grpc_server import InventoryServicer, InventoryGRPCServer
-from grpc.grpc_client import InventoryGRPCClient
+from grpc_impl.grpc_server import InventoryServicer, InventoryGRPCServer
+from grpc_impl.grpc_client import InventoryGRPCClient
 
 
 class MockServicerContext:

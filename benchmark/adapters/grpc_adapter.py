@@ -4,7 +4,7 @@ Adaptateur de benchmark pour le protocole gRPC (HTTP/2 + Protobuf binaire).
 
 from typing import Dict, Any, Optional
 
-from grpc.grpc_client import InventoryGRPCClient
+from grpc_impl.grpc_client import InventoryGRPCClient
 from .base_adapter import BaseBenchmarkAdapter
 
 

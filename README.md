@@ -217,7 +217,7 @@ python rpc_core/client_stub.py --method calculate_factorial --args '{"n": 5}'
 
 #### Démarrer le serveur gRPC
 ```bash
-python grpc/grpc_server.py
+python -m grpc_impl.grpc_server
 ```
 
 #### Lancer un benchmark comparatif

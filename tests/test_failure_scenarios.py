@@ -18,8 +18,8 @@ from rpc_core.server_skeleton import RPCServer
 from rpc_core.client_stub import RPCClient, RPCError
 from rpc_core.transport import send_message, receive_message, ConnectionClosedError
 from business.inventory_service import InventoryService
-from grpc.grpc_server import InventoryGRPCServer
-from grpc.grpc_client import InventoryGRPCClient
+from grpc_impl.grpc_server import InventoryGRPCServer
+from grpc_impl.grpc_client import InventoryGRPCClient
 import grpc
 from rest.rest_server import RestServer
 from rest.rest_client import RestClient, RestClientError
