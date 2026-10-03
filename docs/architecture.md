@@ -153,31 +153,24 @@ SERVER
 #### `rpc_core/serializer.py`
 Responsabilité : Encoder/Décoder les requêtes et réponses RPC
 
-**Format de requête :**
+Format : **JSON-RPC 2.0** (https://www.jsonrpc.org/specification), défini dans `rpc_core/protocol.py`.
+
+**Requête :**
 ```json
-{
-  "id": "unique_request_id",
-  "method": "calculate_factorial",
-  "args": {"n": 5},
-  "metadata": {
-    "timestamp": "2026-09-25T10:30:00Z",
-    "client_id": "client_001"
-  }
-}
+{"jsonrpc": "2.0", "method": "calculate_factorial", "params": {"n": 5}, "id": "9f1c…"}
 ```
 
-**Format de réponse :**
+**Réponse (succès) :**
 ```json
-{
-  "id": "unique_request_id",
-  "result": 120,
-  "error": null,
-  "metadata": {
-    "server_id": "server_001",
-    "execution_time_ms": 2.5
-  }
-}
+{"jsonrpc": "2.0", "result": 120, "id": "9f1c…"}
 ```
+
+**Réponse (erreur) :**
+```json
+{"jsonrpc": "2.0", "error": {"code": -32601, "message": "…", "data": {"name": "METHOD_NOT_FOUND"}}, "id": "9f1c…"}
+```
+
+Notifications (sans `id`, pas de réponse), lots (tableau de requêtes) et codes d'erreur -32700 / -32600 / -32601 / -32602 / -32603 / -32000 sont pris en charge.
 
 #### `rpc_core/client_stub.py`
 Responsabilité : Fournir une abstraction d'appel transparent
@@ -548,8 +541,8 @@ Rendre visible chaque étape du cycle RPC pour des fins pédagogiques.
 │ SERIALIZATION                          │
 │ Format: JSON                           │
 │ Serialized Request:                    │
-│ {"id":"req_001","method":"calculate_   │
-│  factorial","args":{"n":5}}            │
+│ {"jsonrpc":"2.0","method":"calculate_  │
+│  factorial","params":{"n":5},"id":"…"} │
 │ Size: 87 bytes                         │
 └────────────┬───────────────────────────┘
              │

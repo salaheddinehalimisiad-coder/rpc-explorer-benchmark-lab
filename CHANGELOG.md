@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.0] — 2026-10-03
+
+Mise en conformité avec l'énoncé `SOA_project.pdf` (voir `implementation_plan.md`).
+
+### Modifié
+- **Custom RPC au format JSON-RPC 2.0** (« Sockets + JSON-RPC » de l'énoncé) : nouveau `rpc_core/protocol.py` (« Format des messages, JSON-RPC 2.0 spec ») ; requêtes `{"jsonrpc":"2.0","method","params","id"}`, réponses `result` / `error {code, message, data}`, codes d'erreur de la spécification (-32700, -32600, -32601, -32602, -32603) et -32000 pour une exception métier ; paramètres nommés ou positionnels ; vérification de la signature avant exécution (-32602).
+- Streaming Custom RPC réécrit comme extension JSON-RPC : méthode réservée `rpc.stream`, notifications `rpc.stream.item`, réponse finale `{"count": N}`.
+
+### Ajouté
+- Notifications (`client.notify`) et lots (`client.batch`) JSON-RPC 2.0 ; 17 tests reprenant les exemples de la section 7 de la spécification (`tests/test_jsonrpc.py`).
+- **Appels asynchrones** démontrés : `python main.py --async-demo` (Custom RPC `call_async`, gRPC `.future()` via `InventoryGRPCClient.calculate_factorial_async`) ; entrée 11 du menu ; carte dans la vue Mesure du tableau de bord.
+- **Typage strict** démontré : `python main.py --typing-demo` (gRPC refuse un argument mal typé avant tout envoi ; JSON-RPC et REST le détectent côté serveur) ; entrée 12 du menu ; carte dans la vue Contrat.
+- `implementation_plan.md` : correspondance entre chaque exigence de l'énoncé et les fichiers, commandes et tests du projet.
+- 23 nouveaux tests (269 au total).
+
 ## [1.3.0] — 2026-10-03
 
 ### Modifié

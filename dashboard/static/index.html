@@ -387,6 +387,10 @@ tr.pick:hover td { background: var(--raise); }
   <div id="benchOut" style="margin-top:20px">
     <div class="card empty"><div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-chart-no-axes-column"/></svg></div><b>Pas encore de mesure</b><span>Choisissez un nombre d'appels et une opération, puis lancez la mesure.</span></div>
   </div>
+  <div class="card exp" style="margin-top:20px"><div class="card-b">
+    <div class="row"><div class="tile sm" style="--c:var(--ch2)"><svg class="ic sm"><use href="/static/icons.svg#i-zap"/></svg></div><div style="flex:1"><h3>Appels synchrones ou asynchrones</h3><p>5 appels, chacun ralenti de 100 ms côté serveur. En synchrone le client attend chaque réponse ; en asynchrone il lance tout puis récupère les résultats.</p></div>
+    <button class="btn" data-exp="async"><svg class="ic sm"><use href="/static/icons.svg#i-play"/></svg><span class="lbl">Lancer</span></button></div>
+    <div class="out" id="out-async"></div></div></div>
 </section>
 
 <!-- ═════ PANNES ═════ -->
@@ -422,6 +426,10 @@ tr.pick:hover td { background: var(--raise); }
   <div id="contractOut">
     <div class="card empty"><div class="tile"><svg class="ic lg"><use href="/static/icons.svg#i-layers"/></svg></div><b>Version 1 contre version 2</b><span>L'expérience démarre un serveur v2 et lui envoie des requêtes d'un client v1.</span></div>
   </div>
+  <div class="card exp" style="margin-top:20px"><div class="card-b">
+    <div class="row"><div class="tile sm" style="--c:var(--ch2)"><svg class="ic sm"><use href="/static/icons.svg#i-shield-check"/></svg></div><div style="flex:1"><h3>Typage strict</h3><p>Le même appel mal typé envoyé aux trois protocoles. Où l'erreur est-elle détectée, et combien d'octets sont partis sur le réseau ?</p></div>
+    <button class="btn" data-exp="typing"><svg class="ic sm"><use href="/static/icons.svg#i-play"/></svg><span class="lbl">Lancer</span></button></div>
+    <div class="out" id="out-typing"></div></div></div>
 </section>
 </main>
 </div>
@@ -948,6 +956,8 @@ function renderExp(id, d) {
   if (id === "idempotence") return `<table><tr><th>Version</th><th class="r">Unités retirées (attendu : 1)</th></tr>
     <tr><td>Retry naïf</td><td class="r mono ${d.naif.retire === 1 ? "good" : "bad"}">${d.naif.retire}</td></tr>
     <tr><td>Retry avec clé d'idempotence</td><td class="r mono ${d.idempotent.retire === 1 ? "good" : "bad"}">${d.idempotent.retire}</td></tr></table>`;
+  if (id === "async") return `<table><tr><th>Protocole</th><th>Mode</th><th>Code client</th><th class="r">Durée totale</th></tr>${d.rows.map(r => `<tr><td>${esc(r.protocole)}</td><td>${esc(r.mode)}</td><td class="mono">${esc(r.code)}</td><td class="r mono">${ms(r.duree_ms, 0)} ms</td></tr>`).join("")}</table><p class="subtle" style="margin-top:8px">${d.n_calls} appels, ${ms(d.latency_ms, 0)} ms de latence ajoutée par appel : en synchrone les attentes s'additionnent, en asynchrone elles se recouvrent.</p>`;
+  if (id === "typing") { const PR = ["gRPC", "Custom RPC", "REST"]; return `<table><tr><th>Appel mal typé</th>${PR.map(p => `<th>${p}</th>`).join("")}</tr>${d.cases.map(c => `<tr><td class="mono">${esc(c.cas)}</td>${PR.map(p => { const x = c[p]; return `<td><b>${esc(x.ou)}</b> · <span class="mono">${x.octets} o</span><br><small class="mono">${esc(x.resultat)}</small></td>`; }).join("")}</tr>`).join("")}</table><p class="subtle" style="margin-top:8px">gRPC refuse dans le stub généré, avant tout envoi (0 octet) ; JSON-RPC et REST laissent partir la requête et le serveur doit vérifier.</p>`; }
   return `<pre class="code">${esc(JSON.stringify(d, null, 2))}</pre>`;
 }
 $$("[data-exp]").forEach(b => b.addEventListener("click", async () => {

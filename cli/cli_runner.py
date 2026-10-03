@@ -202,6 +202,8 @@ class CLIRunner:
             ("8", "Démo évolution de contrat (v1 vs v2)", self._demo_contract),
             ("9", "Historique des appels", self.action_history),
             ("10", "Démo réponse unique vs streaming", self._demo_streaming),
+            ("11", "Démo appels synchrones vs asynchrones", self._demo_async),
+            ("12", "Démo typage strict (gRPC) vs JSON", self._demo_typing),
             ("0", "Quitter", None),
         ]
 
@@ -216,6 +218,14 @@ class CLIRunner:
     def _demo_benchmark(self):
         n = int(self._ask("Nombre d'itérations", "500"))
         self.run_benchmark_mode(n)
+
+    def _demo_async(self):
+        from lab.async_demo import run_async_demo
+        run_async_demo()
+
+    def _demo_typing(self):
+        from lab.typing_demo import run_typing_demo
+        run_typing_demo()
 
     def _demo_streaming(self):
         from lab.streaming import run_streaming_demo

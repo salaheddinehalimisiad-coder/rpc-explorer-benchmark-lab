@@ -96,8 +96,8 @@ def run_benchmark(iterations: int = 1000, warmup: int = 100, output_dir: Optiona
             rows.append((op, proto, s["request_bytes"], s["response_bytes"], s["total_bytes"]))
     print(table(["Opération", "Protocole", "Requête (o)", "Réponse (o)", "Total (o)"], rows))
     print("NB : n'incluent PAS l'enveloppe de transport (4 o de trame Custom RPC, 5 o de trame gRPC + en-têtes "
-          "HTTP/2 compressés, en-têtes HTTP/1.1 texte pour REST). Le message Custom RPC contient aussi un UUID "
-          "et un horodatage.")
+          "HTTP/2 compressés, en-têtes HTTP/1.1 texte pour REST). Le message Custom RPC (JSON-RPC 2.0) "
+          "contient aussi les membres \"jsonrpc\" et \"id\" (UUID de 36 caractères).")
     report["payload_sizes"] = sizes
 
     section("Coût CPU de la sérialisation pure (sans réseau)")

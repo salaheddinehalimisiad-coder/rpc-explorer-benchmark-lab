@@ -14,6 +14,19 @@ from protos import inventory_pb2
 from protos import inventory_pb2_grpc
 
 
+class _ResultFuture:
+    """Enveloppe d'un futur gRPC : result() renvoie la valeur métier au lieu du message Protobuf."""
+
+    def __init__(self, grpc_future, extract):
+        self._f, self._extract = grpc_future, extract
+
+    def result(self, timeout: Optional[float] = None):
+        return self._extract(self._f.result(timeout=timeout))
+
+    def done(self) -> bool:
+        return self._f.done()
+
+
 class InventoryGRPCClient:
     """
     Client gRPC consommant le service distribué via un canal gRPC et stub typé.
@@ -58,6 +71,15 @@ class InventoryGRPCClient:
             req, timeout=self.timeout
         )
         return response.result
+
+    def calculate_factorial_async(self, n: int) -> "_ResultFuture":
+        """
+        Appel unaire ASYNCHRONE : retourne immédiatement un futur gRPC
+        (`stub.Methode.future(...)`). `future.result()` attend et rend la factorielle.
+        """
+        self._ensure_connected()
+        fut = self.stub.CalculateFactorial.future(inventory_pb2.FactorialRequest(n=n), timeout=self.timeout)
+        return _ResultFuture(fut, lambda resp: resp.result)
 
     def calculate_factorial_with_metadata(self, n: int) -> Dict[str, Any]:
         """

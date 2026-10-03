@@ -11,6 +11,8 @@ Point d'entrée principal : RPC Explorer & Benchmark Lab
     python main.py --simulate-failures     latence, timeout, panne, retry, idempotence
     python main.py --contract-demo         évolution de contrat (client v1 / serveur v2)
     python main.py --streaming-demo        réponse unique vs streaming (Custom RPC)
+    python main.py --async-demo            appels synchrones vs asynchrones (Custom RPC et gRPC)
+    python main.py --typing-demo           typage strict gRPC vs JSON-RPC / REST
 
 Mode « vrai réseau » (deux terminaux, voire deux machines) :
     python main.py --serve all --trace                           # terminal 1
@@ -21,7 +23,7 @@ import argparse
 import json
 import sys
 
-VERSION = "RPC Explorer & Benchmark Lab v1.3.0"
+VERSION = "RPC Explorer & Benchmark Lab v1.4.0"
 DEFAULT_PORTS = {"custom": 5000, "grpc": 50051, "rest": 5001}
 
 
@@ -40,6 +42,8 @@ def parse_arguments(argv=None):
     modes.add_argument("--simulate-failures", action="store_true", help="démonstration des pannes")
     modes.add_argument("--contract-demo", action="store_true", help="évolution de contrat v1/v2")
     modes.add_argument("--streaming-demo", action="store_true", help="réponse unique vs streaming")
+    modes.add_argument("--async-demo", action="store_true", help="appels synchrones vs asynchrones")
+    modes.add_argument("--typing-demo", action="store_true", help="typage strict gRPC vs JSON")
     modes.add_argument("--dashboard", action="store_true",
                        help="tableau de bord web local (http://127.0.0.1:8080 par défaut, --port pour changer)")
     modes.add_argument("--serve", choices=["custom", "grpc", "rest", "all"],
@@ -116,7 +120,9 @@ def run_full_demo(args) -> int:
     from contract_evolution.demo import run_contract_demo
     from lab.benchmark import run_benchmark
     from lab.failures import run_failure_demo
+    from lab.async_demo import run_async_demo
     from lab.streaming import run_streaming_demo
+    from lab.typing_demo import run_typing_demo
     from lab.transparency import run_transparency_demo
     from under_the_hood.explorer import run_under_the_hood_demo
     title("DÉMONSTRATION COMPLÈTE — 5 étapes")
@@ -124,6 +130,8 @@ def run_full_demo(args) -> int:
     run_under_the_hood_demo("update_stock")                  # 4-6 sous le capot + Protobuf
     run_under_the_hood_demo("stream_analytics")              # 7  streaming
     run_streaming_demo()                                     # 7b réponse unique vs flux
+    run_async_demo()                                         # 7c synchrone vs asynchrone
+    run_typing_demo()                                        # 8a typage strict
     run_benchmark(iterations=min(args.iterations, 500), warmup=min(args.warmup, 50),
                   output_dir=None if args.no_save else "results")  # 8
     run_failure_demo()                                       # 9-11 latence, timeout, panne
@@ -163,6 +171,14 @@ def main(argv=None) -> int:
     if args.transparency_demo:
         from lab.transparency import run_transparency_demo
         run_transparency_demo()
+        return 0
+    if args.async_demo:
+        from lab.async_demo import run_async_demo
+        run_async_demo()
+        return 0
+    if args.typing_demo:
+        from lab.typing_demo import run_typing_demo
+        run_typing_demo()
         return 0
     if args.streaming_demo:
         from lab.streaming import run_streaming_demo

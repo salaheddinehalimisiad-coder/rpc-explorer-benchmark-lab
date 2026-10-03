@@ -234,6 +234,12 @@ class Dashboard:
             "retry_restart": lambda: failures.scenario_retry_on_restart(),
             "idempotence": lambda: failures.scenario_retry_not_idempotent(),
         }
+        if name == "async":
+            from lab.async_demo import run_async_demo
+            runners["async"] = lambda: run_async_demo()
+        if name == "typing":
+            from lab.typing_demo import run_typing_demo
+            runners["typing"] = lambda: run_typing_demo()
         if name == "contract":
             from contract_evolution.demo import run_custom_rpc_scenarios, run_grpc_scenarios
             runners["contract"] = lambda: {"custom_rpc": run_custom_rpc_scenarios(), "grpc": run_grpc_scenarios()}

@@ -4,6 +4,8 @@
 
 > Objectif : transformer les concepts théoriques du RPC en phénomènes **observables, mesurables et expérimentables**.
 
+👉 Correspondance avec l'énoncé du projet : **[`implementation_plan.md`](implementation_plan.md)**.
+
 👉 Nouveau sur le sujet ? Commencez par **[`docs/GUIDE_COMPRENDRE.md`](docs/GUIDE_COMPRENDRE.md)** (explication pas à pas, sans prérequis).
 
 ![Tableau de bord : le trajet d'un appel Custom RPC](docs/images/appel.png)
@@ -20,6 +22,8 @@
 | Transparence de localisation | `python main.py --transparency-demo` | le même `update_stock` écrit en local / Custom RPC / gRPC / REST, et son coût |
 | Benchmark | `python main.py --benchmark --iterations 1000` | latence (min, moyenne, médiane, p95, p99), débit, tailles JSON vs Protobuf, coût de sérialisation |
 | Réponse unique vs streaming | `python main.py --streaming-demo` | délai avant la 1re donnée : flux trame par trame vs une seule réponse |
+| Synchrone vs asynchrone | `python main.py --async-demo` | 5 appels lents : les attentes s'additionnent en synchrone, se recouvrent en asynchrone (Custom RPC et gRPC) |
+| Typage strict | `python main.py --typing-demo` | un argument mal typé : refusé par le stub gRPC avant envoi, détecté par le serveur en JSON-RPC et REST |
 | Local ≠ distant | `python main.py --simulate-failures` | latence injectée, timeout, serveur éteint, retry + backoff, **double exécution** d'un retry non idempotent |
 | Évolution de contrat | `python main.py --contract-demo` | client v1 face à un serveur v2 : changements compatibles, erreurs visibles et **bugs silencieux** |
 | Tout, dans l'ordre | `python main.py --demo` | le scénario de soutenance complet |
@@ -75,7 +79,7 @@ Raccourci : <kbd>Ctrl</kbd> + <kbd>Entrée</kbd> envoie l'appel. Les polices et 
           ┌──────────────────────────┼──────────────────────────┐
           ▼                          ▼                          ▼
    Custom RPC (rpc_core)       gRPC (grpc_impl)            REST (rest)
-   stub → JSON → TCP           stub généré → Protobuf      requests → JSON
+   stub → JSON-RPC → TCP       stub généré → Protobuf      requests → JSON
    skeleton + dispatcher       → HTTP/2                    → HTTP/1.1 → Flask
           └──────────────────────────┼──────────────────────────┘
                                      ▼
@@ -85,7 +89,7 @@ Raccourci : <kbd>Ctrl</kbd> + <kbd>Entrée</kbd> envoie l'appel. Les polices et 
 
 | Dossier | Rôle |
 |---|---|
-| `rpc_core/` | mini-framework RPC écrit à la main : `serializer` (JSON), `transport` (trame TCP préfixée par la longueur), `client_stub` (appel transparent, connexion persistante, appel asynchrone, streaming), `server_skeleton` (dispatcher à table blanche), `resilience` (retry explicite) |
+| `rpc_core/` | mini-framework RPC écrit à la main au format **JSON-RPC 2.0** : `protocol` (format des messages, codes d'erreur, notifications, lots), `serializer`, `transport` (trame TCP préfixée par la longueur), `client_stub` (appel transparent, connexion persistante, appel asynchrone, streaming), `server_skeleton` (dispatcher à table blanche), `resilience` (retry explicite) |
 | `protos/inventory.proto` | **contrat IDL** gRPC (v1) + code généré `inventory_pb2*.py` |
 | `grpc_impl/` | serveur et client gRPC (unaire + server streaming) |
 | `rest/` | serveur Flask et client `requests` |
@@ -144,6 +148,7 @@ La CI GitHub Actions (`.github/workflows/tests.yml`) exécute les tests sous Lin
 | 11 | CLI interactif + `main.py` | ✅ |
 | 12 | Streaming Custom RPC + tableau de bord web | ✅ |
 | 13 | Refonte visuelle et ergonomique du tableau de bord | ✅ |
+| 14 | Conformité à l'énoncé : JSON-RPC 2.0, appels asynchrones, typage strict | ✅ |
 
 Pistes futures (non implémentées) : client streaming / streaming bidirectionnel gRPC, tests sur un vrai réseau entre deux machines.
 

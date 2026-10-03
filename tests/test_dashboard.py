@@ -74,6 +74,15 @@ class TestDashboardAPI(unittest.TestCase):
         self.assertEqual(d["naif"]["retire"], 2)
         self.assertEqual(self.c.post("/api/experiment/unknown").status_code, 400)
 
+    def test_async_and_typing_experiments(self):
+        a = self.c.post("/api/experiment/async").json
+        self.assertEqual({r["mode"] for r in a["rows"]}, {"synchrone", "asynchrone"})
+        t = self.c.post("/api/experiment/typing").json
+        self.assertTrue(all(c["gRPC"]["octets"] == 0 for c in t["cases"]))
+        page = self.c.get("/").data
+        self.assertIn(b'data-exp="async"', page)
+        self.assertIn(b'data-exp="typing"', page)
+
 
 if __name__ == "__main__":
     unittest.main()
