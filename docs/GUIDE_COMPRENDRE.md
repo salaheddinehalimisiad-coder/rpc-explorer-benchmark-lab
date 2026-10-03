@@ -138,11 +138,13 @@ Règle d'or Protobuf : on ne change **jamais** le numéro ni le type d'un champ 
 
 ## 8. Scénario de présentation conseillé (≈ 15 min)
 
+Le plus visuel : `python main.py --dashboard` ouvre une page dans le navigateur qui couvre toutes les étapes ci-dessous (onglets *Appel et trajet*, *Flux*, *Benchmark*, *Pannes*, *Contrat*). Les commandes en console restent utiles en secours.
+
 1. **Le service** : montrer `business/inventory_service.py` (4 fonctions simples).
 2. **Appel local vs RPC** : `python main.py --transparency-demo`.
 3. **Sous le capot** : `python main.py --under-the-hood --method update_stock` — commenter stub → JSON → TCP → dispatcher → exécution ; puis les octets Protobuf ; puis la requête HTTP brute.
 4. **Vrai réseau** (optionnel) : terminal 1 `python main.py --serve all --trace`, terminal 2 `python main.py --call custom update_stock item_id=PROD-001 quantity_delta=-2 --trace`.
-5. **Streaming gRPC** : `python main.py --under-the-hood --method stream_analytics`.
+5. **Streaming** : `python main.py --under-the-hood --method stream_analytics`, puis `python main.py --streaming-demo` (la 1re mesure arrive tout de suite en flux, au bout de ~1 s en réponse unique).
 6. **Benchmark** : `python main.py --benchmark --iterations 1000` — insister : *mesures sur cette machine, en localhost*.
 7. **Pannes** : `python main.py --simulate-failures` — latence, timeout, serveur éteint, retry, double décrément.
 8. **Contrat** : `python main.py --contract-demo` — le bug silencieux du renumérotage.
@@ -157,4 +159,5 @@ Règle d'or Protobuf : on ne change **jamais** le numéro ni le type d'un champ 
 - **Pourquoi gRPC est-il compact ?** Binaire + numéros de champs au lieu des noms + entiers en *varint*.
 - **Pourquoi le Custom RPC peut-il battre gRPC en localhost ?** Il fait beaucoup moins de choses (pas d'HTTP/2, pas de gestion de flux, pas de métadonnées) — c'est une **observation** dans nos conditions, pas une vérité générale.
 - **Qu'est-ce que l'idempotence ?** Une opération qu'on peut répéter sans changer le résultat (lire un produit : oui ; retirer 1 du stock : non).
+- **Comment marche votre streaming Custom RPC ?** Le client marque la requête `"stream": true` ; le serveur renvoie une trame par élément puis une trame de fin. Chaque trame reste un message RPC normal (même format JSON, même préfixe de longueur). Si le client part, l'envoi échoue et le serveur arrête de produire.
 - **Pourquoi le serveur v2 tourne-t-il dans un autre processus ?** Les deux contrats déclarent les mêmes noms Protobuf ; ils ne peuvent pas coexister dans le même programme — exactement comme deux versions d'un serveur réel.

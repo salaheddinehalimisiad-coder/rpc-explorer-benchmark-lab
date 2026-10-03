@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0] — 2026-10-03
+
+### Ajouté
+- **Streaming Custom RPC** : `RPCServer.register_stream()` / `RPCClient.stream()` (une trame par élément + trame de fin ou d'erreur ; arrêt côté serveur si le client part) ; `InventoryService.stream_analytics_iter()` ; démo `--streaming-demo`.
+- **Tableau de bord web** (`python main.py --dashboard`) : trajet d'un appel en deux couloirs client/serveur, octets Protobuf colorés par champ, requête HTTP brute, flux en direct (Server-Sent Events), benchmark en barres, injection de pannes, expériences, évolution de contrat. Page unique sans dépendance Internet, thèmes clair/sombre, utilisable sur mobile.
+- 20 nouveaux tests (246 au total).
+
 ## [1.0.0] — 2026-10-03
 
 ### Corrigé

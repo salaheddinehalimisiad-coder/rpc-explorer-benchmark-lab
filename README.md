@@ -12,10 +12,12 @@
 
 | Démonstration | Commande | Ce qu'on observe |
 |---|---|---|
+| **Tableau de bord web** | `python main.py --dashboard` | tout ce qui suit dans le navigateur : trajet d'un appel, octets Protobuf colorés par champ, flux en direct, benchmark en barres, pannes, contrat |
 | Menu interactif « RPC Explorer » | `python main.py` | choisir protocole, méthode, arguments ; activer « Sous le capot » ; injecter une panne |
 | Sous le capot | `python main.py --under-the-hood` | les 9 étapes d'un appel Custom RPC, les octets Protobuf décodés champ par champ, la requête HTTP brute |
 | Transparence de localisation | `python main.py --transparency-demo` | le même `update_stock` écrit en local / Custom RPC / gRPC / REST, et son coût |
 | Benchmark | `python main.py --benchmark --iterations 1000` | latence (min, moyenne, médiane, p95, p99), débit, tailles JSON vs Protobuf, coût de sérialisation |
+| Réponse unique vs streaming | `python main.py --streaming-demo` | délai avant la 1re donnée : flux trame par trame vs une seule réponse |
 | Local ≠ distant | `python main.py --simulate-failures` | latence injectée, timeout, serveur éteint, retry + backoff, **double exécution** d'un retry non idempotent |
 | Évolution de contrat | `python main.py --contract-demo` | client v1 face à un serveur v2 : changements compatibles, erreurs visibles et **bugs silencieux** |
 | Tout, dans l'ordre | `python main.py --demo` | le scénario de soutenance complet |
@@ -66,7 +68,7 @@ python scripts/generate_protos.py
 
 | Dossier | Rôle |
 |---|---|
-| `rpc_core/` | mini-framework RPC écrit à la main : `serializer` (JSON), `transport` (trame TCP préfixée par la longueur), `client_stub` (appel transparent, connexion persistante, appel asynchrone), `server_skeleton` (dispatcher à table blanche), `resilience` (retry explicite) |
+| `rpc_core/` | mini-framework RPC écrit à la main : `serializer` (JSON), `transport` (trame TCP préfixée par la longueur), `client_stub` (appel transparent, connexion persistante, appel asynchrone, streaming), `server_skeleton` (dispatcher à table blanche), `resilience` (retry explicite) |
 | `protos/inventory.proto` | **contrat IDL** gRPC (v1) + code généré `inventory_pb2*.py` |
 | `grpc_impl/` | serveur et client gRPC (unaire + server streaming) |
 | `rest/` | serveur Flask et client `requests` |
@@ -77,6 +79,7 @@ python scripts/generate_protos.py
 | `contract_evolution/` | contrat v2 + serveur v2 (processus séparé) + démo client v1 / serveur v2 |
 | `lab/` | lancement des 3 serveurs, démos transparence / pannes / benchmark |
 | `cli/` | menu interactif |
+| `dashboard/` | tableau de bord web local (Flask + une page HTML sans dépendance Internet) |
 | `tests/` | tests unitaires, d'intégration et de bout en bout |
 
 > Le package gRPC s'appelle `grpc_impl` et non `grpc` pour ne pas masquer la bibliothèque officielle `grpc` (grpcio).
@@ -122,8 +125,9 @@ La CI GitHub Actions (`.github/workflows/tests.yml`) exécute les tests sous Lin
 | 09 | Transparence, retry, idempotence | ✅ |
 | 10 | Évolution de contrat | ✅ |
 | 11 | CLI interactif + `main.py` | ✅ |
+| 12 | Streaming Custom RPC + tableau de bord web | ✅ |
 
-Pistes futures (non implémentées) : tableau de bord web, streaming côté Custom RPC, client streaming gRPC, tests sur un vrai réseau entre deux machines.
+Pistes futures (non implémentées) : client streaming / streaming bidirectionnel gRPC, tests sur un vrai réseau entre deux machines.
 
 ---
 

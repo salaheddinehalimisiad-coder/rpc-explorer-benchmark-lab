@@ -3,6 +3,7 @@
 Point d'entrée principal : RPC Explorer & Benchmark Lab
 
     python main.py                         menu interactif (serveurs lancés automatiquement)
+    python main.py --dashboard             tableau de bord web dans le navigateur
     python main.py --demo                  démonstration complète, dans l'ordre pédagogique
     python main.py --under-the-hood        cycle d'un appel observé sur les 3 protocoles
     python main.py --transparency-demo     appel local vs Custom RPC vs gRPC vs REST
@@ -39,6 +40,8 @@ def parse_arguments(argv=None):
     modes.add_argument("--simulate-failures", action="store_true", help="démonstration des pannes")
     modes.add_argument("--contract-demo", action="store_true", help="évolution de contrat v1/v2")
     modes.add_argument("--streaming-demo", action="store_true", help="réponse unique vs streaming")
+    modes.add_argument("--dashboard", action="store_true",
+                       help="tableau de bord web local (http://127.0.0.1:8080 par défaut, --port pour changer)")
     modes.add_argument("--serve", choices=["custom", "grpc", "rest", "all"],
                        help="lancer un serveur au premier plan (Ctrl+C pour arrêter)")
     modes.add_argument("--call", nargs="+", metavar=("PROTOCOLE METHODE", "nom=valeur"),
@@ -131,6 +134,10 @@ def run_full_demo(args) -> int:
 def main(argv=None) -> int:
     args = parse_arguments(argv)
 
+    if args.dashboard:
+        from dashboard.app import run_dashboard
+        run_dashboard(host=args.host, port=args.port or 8080)
+        return 0
     if args.serve:
         from lab.servers import serve_forever
         serve_forever(args.serve, args.host, args.port, trace=args.trace)

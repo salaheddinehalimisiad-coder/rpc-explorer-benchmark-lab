@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPC Explorer</title>
+<style>
+:root {
+  --paper: #edf1f5;
+  --panel: #f8fafc;
+  --ink: #14202e;
+  --muted: #5b6b7d;
+  --rule: #c9d3de;
+  --custom: #2357c6;
+  --grpc: #0b8a7a;
+  --rest: #7a4cc2;
+  --local: #5b6b7d;
+  --fault: #c8283e;
+  --ok: #1d7a46;
+  --mono: "Cascadia Mono", "Consolas", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --proto: var(--custom);
+  --on-proto: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #101820; --panel: #17222d; --ink: #e3eaf1; --muted: #93a3b4; --rule: #2b3a49;
+    --custom: #6d9bff; --grpc: #35c2ae; --rest: #b38cf0; --local: #93a3b4; --fault: #ff6b7f; --ok: #4fc483;
+    --on-proto: #0d1620;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--proto); outline-offset: 2px; }
+
+header { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: baseline; padding: 18px 28px 0; }
+header h1 { font-size: 22px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+header h1 small { font-weight: 400; color: var(--muted); font-size: 15px; margin-left: 8px; }
+.servers { display: flex; gap: 18px; color: var(--muted); font-size: 13px; }
+.servers span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: currentColor; vertical-align: 1px; }
+.servers .custom { color: var(--custom); } .servers .grpc { color: var(--grpc); } .servers .rest { color: var(--rest); }
+.fault-pill { margin-left: auto; font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+.fault-pill.on { border-color: var(--fault); color: var(--fault); font-weight: 600; }
+
+nav { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid var(--rule); overflow-x: auto; }
+nav button { background: none; border: 0; padding: 8px 12px 10px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+
+main { padding: 24px 28px 60px; max-width: 1280px; }
+section[hidden] { display: none; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0 0 20px; }
+
+/* ---- Appel ---- */
+.call-layout { display: grid; grid-template-columns: 290px 1fr; gap: 28px; align-items: start; }
+.composer { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; position: sticky; top: 12px; }
+.composer label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+.composer label:first-child { margin-top: 0; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 7px 4px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--proto); color: var(--on-proto); font-weight: 600; }
+select, input[type=text], input[type=number] { width: 100%; padding: 7px 9px; border: 1px solid var(--rule); border-radius: 7px; background: var(--paper); }
+.primary { margin-top: 18px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: var(--proto); color: var(--on-proto); font-weight: 600; cursor: pointer; }
+.primary:disabled { opacity: .55; cursor: progress; }
+.secondary { padding: 7px 12px; border: 1px solid var(--rule); border-radius: 7px; background: var(--panel); cursor: pointer; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+
+.outcome { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; margin-bottom: 18px; }
+.outcome .status { font-size: 20px; font-weight: 650; }
+.outcome .status.ok { color: var(--ok); } .outcome .status.err { color: var(--fault); }
+.outcome .elapsed { font-variant-numeric: tabular-nums; color: var(--muted); }
+.result { font-family: var(--mono); font-size: 13px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; margin: 0 0 22px; }
+h2 { font-size: 16px; margin: 26px 0 10px; font-weight: 650; }
+h2:first-child { margin-top: 0; }
+.empty { border: 1px dashed var(--rule); border-radius: 10px; padding: 40px 24px; color: var(--muted); text-align: center; }
+
+/* Le trajet : deux couloirs, client et serveur */
+.journey { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; position: relative; }
+.lane-title { font-size: 13px; color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }
+.step { grid-column: 1; display: grid; grid-template-columns: 74px 1fr; gap: 10px; padding: 7px 0; opacity: .18; transition: opacity .25s ease; }
+.step.server { grid-column: 2; }
+.step.lit { opacity: 1; }
+.step .t { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; padding-top: 2px; }
+.step .name { font-weight: 600; border-left: 3px solid var(--proto); padding-left: 10px; }
+.step .det { grid-column: 2; white-space: pre-wrap; font-size: 12.5px; color: var(--muted); padding-left: 13px; font-family: var(--mono); word-break: break-word; }
+@media (prefers-reduced-motion: reduce) { .step { transition: none; } }
+
+/* Octets : le moment mémorable */
+.bytes { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0 4px; }
+.byte { font-family: var(--mono); font-size: 12px; padding: 3px 4px; border-radius: 3px; background: color-mix(in srgb, var(--c, var(--muted)) 16%, transparent); color: var(--c, var(--ink)); border-bottom: 2px solid var(--c, var(--rule)); min-width: 24px; text-align: center; }
+.byte.frame { --c: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; margin: 6px 0 16px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: -1px; }
+.raw { font-family: var(--mono); font-size: 12.5px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-all; margin: 0 0 14px; }
+.raw .hl { color: var(--proto); font-weight: 600; }
+.note { border-left: 3px solid var(--proto); padding: 4px 0 4px 12px; color: var(--muted); max-width: 72ch; margin: 14px 0; }
+
+/* ---- tableaux & barres ---- */
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; }
+td.num, th.num { text-align: right; }
+.bars { display: grid; grid-template-columns: 220px 1fr 90px; gap: 8px 12px; align-items: center; margin: 12px 0 24px; }
+.bars .lbl { font-size: 14px; }
+.bars .track { height: 18px; background: color-mix(in srgb, var(--rule) 45%, transparent); border-radius: 3px; position: relative; }
+.bars .fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--c); }
+.bars .val { font-family: var(--mono); font-size: 13px; text-align: right; }
+.row-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 18px; }
+.row-controls label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.row-controls input, .row-controls select { width: auto; }
+
+/* ---- flux ---- */
+.stream-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.timeline { position: relative; height: 64px; border-bottom: 1px solid var(--rule); margin: 10px 0 6px; }
+.tick { position: absolute; bottom: 0; width: 3px; border-radius: 2px 2px 0 0; background: var(--c); }
+.axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.events { font-family: var(--mono); font-size: 13px; margin: 10px 0 0; padding: 0; list-style: none; max-height: 260px; overflow: auto; }
+.events li { padding: 2px 0; }
+.events li .t { color: var(--muted); display: inline-block; width: 80px; }
+
+/* ---- pannes ---- */
+.fault-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 28px; }
+.exp { border-top: 1px solid var(--rule); padding: 14px 0 18px; }
+.exp h3 { font-size: 15px; margin: 0 0 4px; }
+.exp p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.exp .out { margin-top: 12px; }
+.verdict-ok { color: var(--ok); font-weight: 600; } .verdict-bad { color: var(--fault); font-weight: 600; } .verdict-warn { color: #b26b00; font-weight: 600; }
+@media (prefers-color-scheme: dark) { .verdict-warn { color: #f0b04a; } }
+
+@media (max-width: 860px) {
+  header, main { padding-left: 16px; padding-right: 16px; }
+  nav { padding-left: 8px; }
+  .call-layout, .stream-cols { grid-template-columns: 1fr; }
+  .composer { position: static; }
+  .journey { grid-template-columns: 1fr; }
+  .step.server { grid-column: 1; }
+  .bars { grid-template-columns: 1fr 70px; }
+  .bars .lbl { grid-column: 1 / -1; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>RPC Explorer <small>laboratoire des appels de procédure distants</small></h1>
+  <div class="servers" id="servers" aria-label="Serveurs démarrés"></div>
+  <div class="fault-pill" id="faultPill" role="status">Aucune panne injectée</div>
+</header>
+<nav role="tablist" aria-label="Expériences">
+  <button role="tab" aria-selected="true" data-tab="call">Appel et trajet</button>
+  <button role="tab" aria-selected="false" data-tab="stream">Flux</button>
+  <button role="tab" aria-selected="false" data-tab="bench">Benchmark</button>
+  <button role="tab" aria-selected="false" data-tab="faults">Pannes</button>
+  <button role="tab" aria-selected="false" data-tab="contract">Contrat</button>
+</nav>
+
+<main>
+<!-- ============ APPEL ============ -->
+<section id="tab-call">
+  <div class="call-layout">
+    <form class="composer" id="callForm" autocomplete="off">
+      <label>Protocole</label>
+      <div class="seg" id="protoSeg">
+        <button type="button" data-proto="custom" aria-pressed="true">Custom RPC</button>
+        <button type="button" data-proto="grpc" aria-pressed="false">gRPC</button>
+        <button type="button" data-proto="rest" aria-pressed="false">REST</button>
+      </div>
+      <label for="method">Méthode</label>
+      <select id="method"></select>
+      <div id="argFields"></div>
+      <button class="primary" id="sendBtn" type="submit">Envoyer l'appel</button>
+      <p class="hint" id="protoHint"></p>
+    </form>
+    <div id="callOut">
+      <div class="empty">Choisissez un protocole et une méthode, puis envoyez l'appel :<br>le trajet complet de la requête s'affichera ici.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLUX ============ -->
+<section id="tab-stream" hidden>
+  <p class="lede">Un capteur produit une mesure à intervalle régulier. En streaming, chaque mesure traverse le réseau dès qu'elle existe ; avec une réponse unique, l'appelant attend la dernière.</p>
+  <div class="row-controls">
+    <label>Mesures <input type="number" id="sN" value="12" min="1" max="100"></label>
+    <label>Intervalle (ms) <input type="number" id="sI" value="200" min="0" max="2000" step="50"></label>
+    <button class="secondary" id="streamBtn">Lancer les deux</button>
+  </div>
+  <div class="stream-cols">
+    <div>
+      <h2>Streaming : client.stream(…)</h2>
+      <div class="timeline" id="tlStream"></div>
+      <div class="axis"><span>0 ms</span><span id="axStream"></span></div>
+      <ul class="events" id="evStream"></ul>
+    </div>
+    <div>
+      <h2>Réponse unique : client.stream_analytics(…)</h2>
+      <div class="timeline" id="tlUnary"></div>
+      <div class="axis"><span>0 ms</span><span id="axUnary"></span></div>
+      <ul class="events" id="evUnary"></ul>
+    </div>
+  </div>
+  <p class="note" id="streamNote" hidden></p>
+</section>
+
+<!-- ============ BENCHMARK ============ -->
+<section id="tab-bench" hidden>
+  <p class="lede">Même machine, même service, mêmes données : chaque variante fait un échauffement puis N appels mesurés. Les résultats ne valent que pour cette machine et ce réseau (localhost).</p>
+  <div class="row-controls">
+    <label>Appels mesurés <input type="number" id="bN" value="500" min="10" max="5000" step="100"></label>
+    <label>Opération
+      <select id="bOp"><option value="calculate_factorial">calculate_factorial(n=10)</option><option value="get_product_details">get_product_details("PROD-001")</option></select>
+    </label>
+    <button class="secondary" id="benchBtn">Lancer la mesure</button>
+  </div>
+  <div id="benchOut"><div class="empty">Aucune mesure pour l'instant.</div></div>
+</section>
+
+<!-- ============ PANNES ============ -->
+<section id="tab-faults" hidden>
+  <p class="lede">Injectez une panne sur les serveurs de ce tableau de bord, puis refaites un appel dans l'onglet « Appel et trajet » pour voir ce que reçoit le client.</p>
+  <div class="row-controls">
+    <button class="secondary" data-fault="latency">Ajouter une latence de <input type="number" id="fLat" value="200" min="1" max="5000" style="width:72px"> ms</button>
+    <button class="secondary" data-fault="timeout">Bloquer le serveur 3 s</button>
+    <button class="secondary" data-fault="crash">Faire planter le serveur</button>
+    <button class="secondary" data-fault="reset">Tout rétablir</button>
+  </div>
+  <h2>Expériences complètes</h2>
+  <div class="fault-grid" id="expGrid"></div>
+</section>
+
+<!-- ============ CONTRAT ============ -->
+<section id="tab-contract" hidden>
+  <p class="lede">Un client resté en version 1 parle à un serveur passé en version 2. Le serveur gRPC v2 tourne dans un processus séparé, comme un vrai redéploiement.</p>
+  <button class="secondary" id="contractBtn">Lancer l'expérience</button>
+  <div id="contractOut" style="margin-top:18px"></div>
+</section>
+</main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = (ms, d = 2) => `${Number(ms).toFixed(d)} ms`;
+const PROTO_LABEL = { custom: "Custom RPC", grpc: "gRPC", rest: "REST" };
+const PROTO_HINT = {
+  custom: "Notre middleware : JSON sur une socket TCP, chaque message précédé de sa longueur sur 4 octets.",
+  grpc: "Stub généré depuis protos/inventory.proto, messages Protobuf binaires sur HTTP/2.",
+  rest: "Ressources et verbes HTTP : JSON sur HTTP/1.1, en-têtes texte.",
+};
+const FIELD_COLORS = ["#2357c6", "#0b8a7a", "#b26b00", "#7a4cc2", "#c8283e", "#1d7a46", "#5b6b7d", "#a0527a", "#3a7ca5"];
+let state = { proto: "custom", methods: {} };
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+/* ---------- en-tête ---------- */
+function renderFault(sim) {
+  const pill = $("#faultPill");
+  const s = sim && sim.active_scenario;
+  pill.classList.toggle("on", !!s);
+  pill.textContent = s ? `Panne active : ${s.replace("latency_", "latence ").replace("timeout_", "serveur bloqué ").replace("server_crash", "crash serveur")}` : "Aucune panne injectée";
+}
+async function loadInfo() {
+  const info = await api("/api/info");
+  state.methods = info.methods;
+  $("#servers").innerHTML = Object.entries(info.servers).map(([k, p]) => `<span class="${k}">${PROTO_LABEL[k]} :${p}</span>`).join("");
+  if (!$("#method").options.length) {
+    $("#method").innerHTML = Object.keys(info.methods).map(m => `<option>${m}</option>`).join("");
+    renderArgs();
+  }
+  renderFault(info.simulator);
+}
+
+/* ---------- onglets ---------- */
+$$("nav button").forEach(b => b.addEventListener("click", () => {
+  $$("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  $$("main > section").forEach(s => s.hidden = s.id !== `tab-${b.dataset.tab}`);
+}));
+
+/* ---------- composer ---------- */
+function setProto(p) {
+  state.proto = p;
+  document.documentElement.style.setProperty("--proto", `var(--${p})`);
+  $$("#protoSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.proto === p));
+  $("#protoHint").textContent = PROTO_HINT[p];
+}
+$$("#protoSeg button").forEach(b => b.addEventListener("click", () => setProto(b.dataset.proto)));
+$("#method").addEventListener("change", renderArgs);
+function renderArgs() {
+  const defs = state.methods[$("#method").value] || {};
+  $("#argFields").innerHTML = Object.entries(defs).map(([k, v]) =>
+    `<label for="arg-${k}">${k}</label><input id="arg-${k}" data-arg="${k}" type="${typeof v === "number" ? "number" : "text"}" value="${esc(v)}">`).join("");
+}
+$("#callForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const args = {};
+  $$("[data-arg]").forEach(i => args[i.dataset.arg] = i.type === "number" ? Number(i.value) : i.value);
+  const btn = $("#sendBtn"); btn.disabled = true; btn.textContent = "Appel en cours…";
+  try { renderCall(await api("/api/call", { protocol: state.proto, method: $("#method").value, args })); }
+  catch (err) { $("#callOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  finally { btn.disabled = false; btn.textContent = "Envoyer l'appel"; }
+});
+
+/* ---------- rendu d'un appel ---------- */
+function byteStrip(view, frameHeader) {
+  const cells = [];
+  if (frameHeader) frameHeader.forEach(b => cells.push(`<span class="byte frame" title="en-tête de trame">${b}</span>`));
+  view.fields.forEach((f, i) => {
+    const c = FIELD_COLORS[i % FIELD_COLORS.length];
+    f.bytes.split(" ").forEach((b, j) => cells.push(`<span class="byte" style="--c:${c}" title="champ n°${f.field_number} (${esc(f.name)})${j === 0 ? " — octet de tag" : ""}">${b}</span>`));
+  });
+  const legend = view.fields.map((f, i) => `<span style="--c:${FIELD_COLORS[i % FIELD_COLORS.length]}">n°${f.field_number} ${esc(f.name)} = ${esc(JSON.stringify(f.value))}${f.note ? " (" + esc(f.note) + ")" : ""}</span>`).join("");
+  return `<div class="bytes">${cells.join("") || '<span class="hint">aucun octet : tous les champs ont leur valeur par défaut</span>'}</div><div class="legend">${legend}</div>`;
+}
+function lengthPrefix(n) { return [24, 16, 8, 0].map(s => ((n >> s) & 255).toString(16).padStart(2, "0")); }
+
+function renderCall(r) {
+  const ok = r.status === "OK";
+  let html = `<div class="outcome"><span class="status ${ok ? "ok" : "err"}">${ok ? "Réussi" : esc(r.status)}</span>
+    <span class="elapsed">${PROTO_LABEL[r.protocol]} · ${esc(r.method)} · ${fmt(r.elapsed_ms)} vus par le client</span></div>`;
+  html += `<pre class="result">${esc(ok ? JSON.stringify(r.result, null, 2) : r.error)}</pre>`;
+
+  if (r.protocol === "custom" && r.trace) {
+    html += `<h2>Le trajet de l'appel</h2><div class="journey"><div class="lane-title">Client</div><div class="lane-title">Serveur</div>`;
+    r.trace.forEach(s => {
+      const det = Object.entries(s.details).filter(([k]) => k !== "payload").map(([k, v]) => `${k} : ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
+      html += `<div class="step ${s.side}"><span class="t">+${s.t_ms.toFixed(3)}</span><span class="name">${esc(s.step)}</span><span class="det">${esc(det)}</span></div>`;
+    });
+    html += `</div>`;
+    const sent = r.trace.find(s => s.step.startsWith("STUB_MARSHAL"));
+    if (sent) {
+      const size = parseInt(sent.details.taille);
+      html += `<h2>Ce qui part sur la socket TCP</h2><div class="bytes">${lengthPrefix(size).map(b => `<span class="byte frame" title="longueur du message">${b}</span>`).join("")}</div>
+        <p class="hint">4 octets de longueur (${size} en hexadécimal), puis le corps JSON :</p><pre class="raw">${esc(sent.details.payload)}</pre>`;
+    }
+    html += `<p class="note">Le code appelant n'a écrit qu'une ligne : client.${esc(r.method)}(…). Le stub, la sérialisation, le transport et le dispatcher ci-dessus sont invisibles pour lui : c'est la transparence de localisation.</p>`;
+  }
+  if (r.protocol === "grpc" && r.grpc) {
+    const g = r.grpc;
+    html += `<h2>Requête : POST ${esc(g.path)}</h2><p class="hint">${esc(g.request.type)}, ${g.request.size} octets Protobuf, précédés de 5 octets de trame gRPC (compression + longueur).</p>`;
+    html += byteStrip(g.request, ["00", ...lengthPrefix(g.request.size)]);
+    if (g.response) { html += `<h2>Réponse : ${esc(g.response.type)}, ${g.response.size} octets</h2>` + byteStrip(g.response); }
+    if (g.streamed_messages) html += `<p class="note">Server streaming : une requête, ${g.streamed_messages} messages de réponse sur le même flux HTTP/2.</p>`;
+    html += `<p class="note">Seuls les numéros de champs voyagent, jamais leurs noms : sans le fichier .proto, ces octets sont illisibles. C'est ce qui rend Protobuf compact… et le contrat indispensable.</p>`;
+  }
+  if (r.protocol === "rest" && r.http) {
+    const h = r.http;
+    const raw = esc(h.request).replace(/^([A-Z]+ \S+ HTTP\/1\.1)/, '<span class="hl">$1</span>');
+    html += `<h2>Requête HTTP envoyée (${h.request_size} octets)</h2><pre class="raw">${raw}</pre>`;
+    html += `<h2>Réponse ${esc(h.response_status)} (corps : ${h.response_size} octets)</h2><pre class="raw">${esc(Object.entries(h.response_headers).map(([k, v]) => `${k}: ${v}`).join("\n"))}\n\n${esc(h.response_body)}</pre>`;
+    html += `<p class="note">REST manipule des ressources (une URL) avec des verbes HTTP ; le client construit lui-même l'URL, le JSON et interprète les codes de statut.</p>`;
+  }
+  $("#callOut").innerHTML = html;
+  // Le seul mouvement de la page : les étapes s'allument dans l'ordre réel du trajet.
+  const steps = $$("#callOut .step");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  steps.forEach((s, i) => reduce ? s.classList.add("lit") : setTimeout(() => s.classList.add("lit"), 120 * i));
+  loadInfo();
+}
+
+/* ---------- flux ---------- */
+function tick(tl, t, max, color) {
+  const d = document.createElement("span");
+  d.className = "tick"; d.style.left = `${Math.min(99.5, t / max * 100)}%`; d.style.height = "100%"; d.style.setProperty("--c", color);
+  tl.appendChild(d);
+}
+$("#streamBtn").addEventListener("click", async () => {
+  const n = +$("#sN").value, iv = +$("#sI").value, max = Math.max(1, (n - 1) * iv * 1.08 + 50);
+  ["tlStream", "tlUnary", "evStream", "evUnary"].forEach(id => $("#" + id).innerHTML = "");
+  $("#axStream").textContent = $("#axUnary").textContent = `${Math.round(max)} ms`;
+  $("#streamNote").hidden = true;
+  const btn = $("#streamBtn"); btn.disabled = true;
+  const t0 = performance.now();
+  let firstStream = null;
+  await new Promise(resolve => {
+    const es = new EventSource(`/api/stream?n=${n}&interval=${iv}`);
+    es.onmessage = e => {
+      const d = JSON.parse(e.data); const t = performance.now() - t0;
+      firstStream ??= t;
+      tick($("#tlStream"), t, max, "var(--custom)");
+      $("#evStream").insertAdjacentHTML("beforeend", `<li><span class="t">+${t.toFixed(0)} ms</span>n°${d.item.sequence} = ${d.item.value} ${esc(d.item.unit)}</li>`);
+    };
+    es.addEventListener("end", () => { es.close(); resolve(); });
+    es.addEventListener("failure", e => { es.close(); $("#evStream").innerHTML += `<li>${esc(JSON.parse(e.data).error)}</li>`; resolve(); });
+    es.onerror = () => { es.close(); resolve(); };
+  });
+  const totalStream = performance.now() - t0;
+  // Réponse unique : vrai appel Custom RPC, le serveur attend les mêmes mesures puis répond une fois.
+  const t1 = performance.now();
+  const u = await api("/api/stream_unary", { n, interval: iv });
+  const tu = performance.now() - t1;
+  u.items.forEach(item => {
+    tick($("#tlUnary"), tu, max, "var(--rest)");
+    $("#evUnary").insertAdjacentHTML("beforeend", `<li><span class="t">+${tu.toFixed(0)} ms</span>n°${item.sequence} = ${item.value} ${esc(item.unit)}</li>`);
+  });
+  $("#streamNote").hidden = false;
+  $("#streamNote").textContent = `Streaming : 1re mesure après ${firstStream?.toFixed(0)} ms, dernière après ${totalStream.toFixed(0)} ms. Réponse unique : tout arrive d'un coup après ${tu.toFixed(0)} ms. La durée totale est la même — c'est le délai avant la première donnée qui change. Les deux colonnes sont de vrais appels Custom RPC vers le même capteur ; les temps incluent le relais jusqu'au navigateur.`;
+  btn.disabled = false;
+});
+
+/* ---------- benchmark ---------- */
+const BENCH_COLOR = n => n.startsWith("Local") ? "var(--local)" : n.startsWith("Custom") ? "var(--custom)" : n === "gRPC" ? "var(--grpc)" : "var(--rest)";
+$("#benchBtn").addEventListener("click", async () => {
+  const btn = $("#benchBtn"); btn.disabled = true; btn.textContent = "Mesure en cours…";
+  $("#benchOut").innerHTML = `<div class="empty">Mesure en cours : ${$("#bN").value} appels × 5 variantes…</div>`;
+  try {
+    const b = await api("/api/benchmark", { iterations: +$("#bN").value, operation: $("#bOp").value });
+    const maxMed = Math.max(...b.results.map(r => r.latency_ms.median));
+    let html = b.simulator_active ? `<p class="note" style="border-color:var(--fault)">Attention : une panne est active, ces mesures l'incluent.</p>` : "";
+    html += `<h2>Latence médiane par appel</h2><div class="bars">` + b.results.map(r =>
+      `<span class="lbl">${esc(r.name)}</span><span class="track"><span class="fill" style="--c:${BENCH_COLOR(r.name)};width:${Math.max(0.6, r.latency_ms.median / maxMed * 100)}%"></span></span><span class="val">${fmt(r.latency_ms.median, 3)}</span>`).join("") + `</div>`;
+    html += `<table><thead><tr><th>Variante</th><th class="num">Min</th><th class="num">Moyenne</th><th class="num">Médiane</th><th class="num">p95</th><th class="num">p99</th><th class="num">Débit</th><th class="num">Erreurs</th></tr></thead><tbody>` +
+      b.results.map(r => { const l = r.latency_ms; return `<tr><td>${esc(r.name)}</td><td class="num">${l.min.toFixed(3)}</td><td class="num">${l.mean.toFixed(3)}</td><td class="num">${l.median.toFixed(3)}</td><td class="num">${l.p95.toFixed(3)}</td><td class="num">${l.p99.toFixed(3)}</td><td class="num">${Math.round(r.throughput_rps).toLocaleString("fr-FR")} req/s</td><td class="num">${r.error_count}</td></tr>`; }).join("") + `</tbody></table><p class="hint">Durées en millisecondes, ${b.iterations} appels mesurés par variante.</p>`;
+    const sz = b.payload_sizes, maxSz = Math.max(...Object.values(sz).map(s => s.total_bytes));
+    html += `<h2>Octets échangés (corps des messages, requête + réponse)</h2><div class="bars">` + Object.entries(sz).map(([k, s]) =>
+      `<span class="lbl">${esc(k)}</span><span class="track"><span class="fill" style="--c:${BENCH_COLOR(k === "Custom RPC" ? "Custom" : k)};width:${s.total_bytes / maxSz * 100}%"></span></span><span class="val">${s.total_bytes} o</span>`).join("") + `</div>`;
+    $("#benchOut").innerHTML = html;
+  } catch (err) { $("#benchOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  finally { btn.disabled = false; btn.textContent = "Lancer la mesure"; }
+});
+
+/* ---------- pannes ---------- */
+$$("[data-fault]").forEach(b => b.addEventListener("click", async e => {
+  if (e.target.tagName === "INPUT") return;
+  renderFault(await api("/api/faults", { kind: b.dataset.fault, value: b.dataset.fault === "latency" ? +$("#fLat").value : 3 }));
+}));
+const EXPERIMENTS = [
+  ["latency", "Latence ajoutée", "Médiane de 5 appels avec 0, 50 puis 200 ms de latence artificielle, en local et sur chaque protocole."],
+  ["timeout", "Serveur trop lent", "Le serveur met 1 s à répondre, le client n'attend que 0,3 s : quelle erreur reçoit-il, et quand ?"],
+  ["server_down", "Serveur éteint", "Personne n'écoute sur le port. Une fonction locale, elle, ne peut pas être indisponible."],
+  ["retry_restart", "Redémarrage et retry", "Le serveur revient après 0,5 s : le client naïf plante, le client avec retry et backoff réussit."],
+  ["idempotence", "Retry sur update_stock", "La 1re requête s'exécute trop tard, le client a déjà réessayé : combien d'unités sont retirées ?"],
+];
+$("#expGrid").innerHTML = EXPERIMENTS.map(([id, t, d]) => `<div class="exp"><h3>${t}</h3><p>${d}</p><button class="secondary" data-exp="${id}">Lancer</button><div class="out" id="out-${id}"></div></div>`).join("");
+function renderExp(id, d) {
+  if (id === "latency") return `<table><thead><tr><th>Latence</th><th class="num">Local</th><th class="num">Custom</th><th class="num">gRPC</th><th class="num">REST</th></tr></thead><tbody>${d.map(r => `<tr><td>${r.latence_injectee_ms} ms</td><td class="num">${r.local.toFixed(4)}</td><td class="num">${r.custom_rpc.toFixed(2)}</td><td class="num">${r.grpc.toFixed(2)}</td><td class="num">${r.rest.toFixed(2)}</td></tr>`).join("")}</tbody></table>`;
+  if (id === "timeout") return `<table><tbody>${d.map(r => `<tr><td>${r.protocole}</td><td>${esc(r.erreur)}</td><td class="num">${r.attente_ms.toFixed(0)} ms</td></tr>`).join("")}</tbody></table>`;
+  if (id === "server_down") return `<table><tbody>${d.map(r => `<tr><td>${r.protocole}</td><td>${esc(r.resultat)}</td></tr>`).join("")}</tbody></table>`;
+  if (id === "retry_restart") return `<p><span class="verdict-bad">Client naïf : ${esc(d.naive)}</span></p><ul class="events">${d.retries_log.map(l => `<li>${esc(l)}</li>`).join("")}</ul><p><span class="verdict-ok">Client avec retry : ${esc(d.robust)}</span></p>`;
+  if (id === "idempotence") return `<table><thead><tr><th>Version</th><th class="num">Unités retirées</th></tr></thead><tbody><tr><td>Retry naïf</td><td class="num ${d.naif.retire === 1 ? "verdict-ok" : "verdict-bad"}">${d.naif.retire}</td></tr><tr><td>Retry + clé d'idempotence</td><td class="num ${d.idempotent.retire === 1 ? "verdict-ok" : "verdict-bad"}">${d.idempotent.retire}</td></tr></tbody></table><p class="hint">Attendu : 1 unité.</p>`;
+  return `<pre class="raw">${esc(JSON.stringify(d, null, 2))}</pre>`;
+}
+$$("[data-exp]").forEach(b => b.addEventListener("click", async () => {
+  const id = b.dataset.exp, out = $("#out-" + id);
+  b.disabled = true; out.innerHTML = `<p class="hint">Expérience en cours…</p>`;
+  try { out.innerHTML = renderExp(id, await api(`/api/experiment/${id}`, {})); }
+  catch (err) { out.innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  finally { b.disabled = false; }
+}));
+
+/* ---------- contrat ---------- */
+const verdictClass = v => v.startsWith("COMPATIBLE") ? "verdict-ok" : v.includes("SILENCIEUX") ? "verdict-bad" : "verdict-warn";
+$("#contractBtn").addEventListener("click", async () => {
+  const btn = $("#contractBtn"); btn.disabled = true;
+  $("#contractOut").innerHTML = `<p class="hint">Démarrage du serveur v2 dans un processus séparé…</p>`;
+  try {
+    const d = await api("/api/experiment/contract", {});
+    const tbl = (title, rows) => `<h2>${title}</h2><table><thead><tr><th>Appel du client v1</th><th>Changement côté serveur v2</th><th>Ce qu'observe le client</th><th>Verdict</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.scenario)}</td><td>${esc(r.change)}</td><td>${esc(r.observed)}</td><td class="${verdictClass(r.verdict)}">${esc(r.verdict)}</td></tr>`).join("")}</tbody></table>`;
+    $("#contractOut").innerHTML = tbl("Custom RPC — les arguments voyagent par nom", d.custom_rpc) + tbl("gRPC — les champs voyagent par numéro", d.grpc) +
+      `<p class="note">Le pire cas est le bug silencieux : UpdateStock répond « succès » mais le stock n'a pas bougé, car le numéro du champ quantity_delta a changé entre les deux versions du .proto.</p>`;
+  } catch (err) { $("#contractOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  finally { btn.disabled = false; }
+});
+
+setProto("custom");
+loadInfo().catch(err => $("#callOut").innerHTML = `<p class="note">Impossible de joindre le tableau de bord : ${esc(err.message)}</p>`);
+</script>
+</body>
+</html>
