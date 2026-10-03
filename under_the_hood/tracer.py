@@ -43,8 +43,15 @@ def preview_bytes(data: bytes, limit: int = 160) -> str:
 class RPCTracer:
     """Enregistreur et formateur des étapes d'un appel RPC."""
 
-    def __init__(self, enabled: bool = True):
+    def __init__(self, enabled: bool = True, live: bool = False):
+        """
+        Args:
+            enabled: si False, aucun enregistrement (coût nul).
+            live: si True, chaque étape est aussi affichée immédiatement
+                  (utile côté serveur lancé dans un terminal séparé).
+        """
         self.enabled = enabled
+        self.live = live
         self.traces: List[Dict[str, Any]] = []
         self._lock = threading.Lock()
 
@@ -71,6 +78,13 @@ class RPCTracer:
         }
         with self._lock:
             self.traces.append(event)
+        if self.live:
+            who = "CLIENT" if side == "client" else "SERVEUR"
+            short = ", ".join(
+                f"{k}={preview_bytes(bytes(v), 80) if isinstance(v, (bytes, bytearray)) else v}"
+                for k, v in event["details"].items()
+            )
+            print(f"[{who}] {step_name} │ {short}", flush=True)
 
     def clear(self) -> None:
         with self._lock:

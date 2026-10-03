@@ -163,8 +163,7 @@ class TestImportsAndInterfaces(unittest.TestCase):
         self.assertTrue(hasattr(cli, "run_interactive_menu"))
         self.assertTrue(hasattr(cli, "run_benchmark_mode"))
 
-        with self.assertRaises(NotImplementedError):
-            cli.run_interactive_menu()
+        self.assertTrue(hasattr(cli, "run_failure_demo"))
 
 
 if __name__ == "__main__":

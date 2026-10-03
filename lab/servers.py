@@ -127,12 +127,19 @@ class LabServers:
         return "\n".join(parts)
 
 
-def serve_forever(protocol: str, host: str, port: int) -> None:
-    """Lance un (ou tous les) serveur(s) au premier plan jusqu'à Ctrl+C."""
+def serve_forever(protocol: str, host: str, port: int, trace: bool = False) -> None:
+    """Lance un (ou tous les) serveur(s) au premier plan jusqu'à Ctrl+C.
+
+    trace=True : le serveur Custom RPC affiche en direct ses étapes « Sous le capot ».
+    """
+    tracer = None
+    if trace:
+        from under_the_hood.tracer import RPCTracer
+        tracer = RPCTracer(live=True)
     defaults = {"custom": 5000, "grpc": 50051, "rest": 5001}
     protocols = ["custom", "grpc", "rest"] if protocol == "all" else [protocol]
     ports = {p: (port if (port and protocol != "all") else defaults[p]) for p in protocols}
-    lab = LabServers(host=host, protocols=protocols,
+    lab = LabServers(host=host, protocols=protocols, tracer=tracer,
                      custom_port=ports.get("custom", 0),
                      grpc_port=ports.get("grpc", 0),
                      rest_port=ports.get("rest", 0))
