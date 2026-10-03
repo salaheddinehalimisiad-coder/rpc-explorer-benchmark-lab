@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] — 2026-10-03
+
+### Modifié
+- **Tableau de bord** : nouveau design « banc de mesure » (diagramme de séquence réel de chaque appel, inspecteur d'octets, vue analyseur logique pour le flux), polices embarquées, thème clair uniquement.
+
+### Ajouté
+- Points de départ guidés, comparaison du même appel sur les trois protocoles, historique des appels cliquable, bouton Copier, raccourci Ctrl + Entrée, bandeau quand une panne est active, adresse de vue dans l'URL (#flux, #mesure…), échec réseau dessiné dans la séquence.
+
 ## [1.1.0] — 2026-10-03
 
 ### Ajouté

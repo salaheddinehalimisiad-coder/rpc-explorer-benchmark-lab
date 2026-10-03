@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>RPC Explorer</title>
 <style>
 @font-face { font-family: "Instrument Sans"; font-weight: 400 700; font-display: swap;
@@ -27,17 +28,8 @@
   --sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "Martian Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111513; --surface: #171c1a; --sunken: #0d100f;
-    --ink: #e4e9e6; --ink-2: #a9b2ad; --ink-3: #7c8580;
-    --rule: #2b3330; --rule-2: #222926;
-    --ch1: #f0b44c; --ch2: #52c5d4; --ch3: #e584b8; --ch0: #9aa39e;
-    --fault: #ff7b6b; --ok: #79cf7c;
-  }
-}
 * { box-sizing: border-box; }
-html { background: var(--bg); }
+html { background: var(--bg); color-scheme: light; }
 body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans); font-feature-settings: "ss01"; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -90,6 +82,37 @@ input[type=number] { width: 110px; }
 .btn:disabled { opacity: .5; cursor: progress; }
 .subtle { color: var(--ink-3); font-size: 13.5px; margin: 8px 2px 0; }
 
+.barfoot { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; margin: 8px 2px 0; }
+.barfoot .subtle { margin: 0; }
+.barfoot .acts { display: flex; gap: 10px; align-items: center; }
+kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 3px; background: var(--surface); color: var(--ink-2); }
+.banner { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-top: 16px; padding: 10px 14px; border: 1px solid var(--fault); border-left-width: 4px; background: #fdf1ef; color: var(--ink); border-radius: 3px; }
+.banner b { color: var(--fault); }
+.banner[hidden] { display: none; }
+.start { margin-top: 34px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; }
+.start h3 { grid-column: 1 / -1; }
+.preset { all: unset; cursor: pointer; display: grid; grid-template-columns: 10px 1fr auto; gap: 4px 12px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--rule); }
+.preset i { width: 10px; height: 10px; border-radius: 1px; background: var(--c); align-self: center; }
+.preset b { font-weight: 600; }
+.preset span { grid-column: 2; color: var(--ink-2); font-size: 14px; }
+.preset em { font-style: normal; color: var(--ink-3); grid-row: 1; grid-column: 3; font-size: 13px; }
+.preset:hover b { text-decoration: underline; text-underline-offset: 3px; }
+.preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmp td.bar { width: 34%; }
+.cmp .meter { height: 10px; background: var(--c); }
+.cmp tr.pick { cursor: pointer; }
+.cmp tr.pick:hover td { background: var(--rule-2); }
+.history { margin-top: 36px; }
+.history table td { padding-top: 5px; padding-bottom: 5px; }
+.history tr { cursor: pointer; }
+.history tr:hover td { background: var(--rule-2); }
+.codewrap { position: relative; }
+.copy { position: absolute; top: 8px; right: 8px; padding: 2px 9px; font-size: 12.5px; border: 1px solid var(--rule); background: var(--surface); border-radius: 3px; cursor: pointer; }
+.applied { margin: 10px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.busy::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -1px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .busy::after { animation: none; } }
+
 /* ── Résultat d'un appel ── */
 .callgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; margin-top: 26px; align-items: start; }
 .panel-title { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 8px; margin-bottom: 14px; }
@@ -104,6 +127,7 @@ input[type=number] { width: 110px; }
 .seq .msg { stroke: var(--accent); stroke-width: 1.6; fill: none; }
 .seq .msg-label { fill: var(--accent); font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
 .seq .dot { fill: var(--ink-2); }
+.seq .fail { fill: var(--fault); font-weight: 600; }
 .seq .hl { fill: var(--accent); }
 @media (prefers-reduced-motion: no-preference) {
   .seq .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw .45s ease-out forwards; animation-delay: var(--d); }
@@ -182,7 +206,7 @@ td .sw { display: inline-block; width: 8px; height: 8px; background: var(--c); m
   .nav button[aria-current="page"] { border-bottom-color: var(--ink); }
   .channels, .fault-state { display: none; }
   .work { padding: 20px 16px 48px; }
-  .callgrid, .split { grid-template-columns: 1fr; }
+  .callgrid, .split, .start { grid-template-columns: 1fr; }
   .go { margin-left: 0; }
   .bars { grid-template-columns: 1fr 80px; }
   .bars .lab { grid-column: 1 / -1; }
@@ -221,8 +245,23 @@ td .sw { display: inline-block; width: 8px; height: 8px; background: var(--c); m
     <div id="argFields"></div>
     <button class="go" id="sendBtn" type="submit">Envoyer</button>
   </form>
-  <p class="subtle" id="protoHint"></p>
-  <div id="callOut"><p class="empty">Aucun appel pour l'instant. Choisissez un protocole et une méthode, puis envoyez.</p></div>
+  <div class="barfoot">
+    <p class="subtle" id="protoHint"></p>
+    <div class="acts"><span class="subtle"><kbd>Ctrl</kbd> + <kbd>Entrée</kbd> pour envoyer</span>
+      <button class="btn" type="button" id="compareBtn">Comparer les 3 protocoles</button></div>
+  </div>
+  <div class="banner" id="faultBanner" hidden><span><b>Panne active.</b> <span id="faultBannerText"></span> Les appels vont s'en ressentir.</span>
+    <button class="btn" type="button" id="clearFault">Rétablir le réseau</button></div>
+  <div id="callOut">
+    <div class="start">
+      <h3>Par où commencer</h3>
+      <button class="preset" style="--c:var(--ch1)" data-preset="trace"><i></i><b>Suivre un appel Custom RPC</b><em>calculate_factorial</em><span>Chaque étape, du stub au dispatcher, avec son heure exacte.</span></button>
+      <button class="preset" style="--c:var(--ch2)" data-preset="bytes"><i></i><b>Lire les octets d'un message gRPC</b><em>update_stock</em><span>Les champs Protobuf décodés un par un, numéro par numéro.</span></button>
+      <button class="preset" style="--c:var(--ch3)" data-preset="compare"><i></i><b>Comparer les trois protocoles</b><em>get_product_details</em><span>Le même appel en Custom RPC, gRPC et REST : durée et octets.</span></button>
+      <button class="preset" style="--c:var(--ch1)" data-preset="stream"><i></i><b>Recevoir un flux de mesures</b><em>stream_analytics</em><span>Une trame réseau par mesure, puis une trame de fin.</span></button>
+    </div>
+  </div>
+  <div class="history" id="history" hidden></div>
 </section>
 
 <!-- ═════ FLUX ═════ -->
@@ -263,6 +302,7 @@ td .sw { display: inline-block; width: 8px; height: 8px; background: var(--c); m
         <label><input type="radio" name="fault" value="crash"> Faire tomber le serveur</label>
         <button class="go" type="submit">Appliquer</button>
       </form>
+      <p class="applied" id="faultApplied" role="status"></p>
       <p class="subtle">Puis refaites un appel dans la vue Appel pour voir ce que reçoit le client.</p>
     </div>
     <div>
@@ -310,14 +350,24 @@ function el(tag, attrs = {}, parent) {
 function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
 
 /* ── rail ── */
-function renderFault(sim) {
-  const s = sim && sim.active_scenario, box = $("#faultState");
-  box.classList.toggle("on", !!s);
-  box.textContent = !s ? "Réseau nominal"
+function faultText(s) {
+  return !s ? "Réseau nominal"
     : s.startsWith("latency_") ? `Latence ajoutée : ${parseFloat(s.slice(8))} ms`
     : s.startsWith("timeout_") ? `Requêtes bloquées ${parseFloat(s.slice(8))} s`
     : "Serveur tombé";
 }
+function renderFault(sim) {
+  const s = sim && sim.active_scenario, box = $("#faultState");
+  box.classList.toggle("on", !!s);
+  box.textContent = faultText(s);
+  $("#faultBanner").hidden = !s;
+  $("#faultBannerText").textContent = s ? faultText(s) + "." : "";
+}
+$("#clearFault").addEventListener("click", async () => {
+  renderFault(await api("/api/faults", { kind: "reset" }));
+  $('input[name=fault][value=reset]').checked = true;
+  $("#faultApplied").textContent = "";
+});
 async function loadInfo() {
   const info = await api("/api/info");
   state.methods = info.methods;
@@ -331,11 +381,15 @@ async function loadInfo() {
   }
   renderFault(info.simulator);
 }
-$$(".nav button").forEach(b => b.addEventListener("click", () => {
+function showView(name) {
+  const b = $(`.nav button[data-view="${name}"]`) || $(".nav button");
   $$(".nav button").forEach(x => x.removeAttribute("aria-current"));
   b.setAttribute("aria-current", "page");
   $$(".view").forEach(v => v.hidden = v.id !== `view-${b.dataset.view}`);
-}));
+  if (location.hash.slice(1) !== b.dataset.view) history.replaceState(null, "", `#${b.dataset.view}`);
+}
+$$(".nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
 
 /* ── barre de requête ── */
 function setProto(p) {
@@ -351,14 +405,102 @@ function renderArgs() {
   $("#argFields").innerHTML = Object.entries(defs).map(([k, v]) =>
     `<label class="field"><span>${k}</span><input data-arg="${k}" type="${typeof v === "number" ? "number" : "text"}" value="${esc(v)}"></label>`).join("");
 }
-$("#callForm").addEventListener("submit", async e => {
-  e.preventDefault();
+function readArgs() {
   const args = {};
   $$("[data-arg]").forEach(i => args[i.dataset.arg] = i.type === "number" ? Number(i.value) : i.value);
-  const btn = $("#sendBtn"); btn.disabled = true; btn.textContent = "En cours…";
-  try { renderCall(await api("/api/call", { protocol: state.proto, method: $("#method").value, args })); }
+  return args;
+}
+function setBusy(btn, busy, label) {
+  btn.disabled = busy; btn.classList.toggle("busy", busy);
+  if (label) btn.textContent = label;
+}
+$("#callForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = $("#sendBtn"); setBusy(btn, true, "En cours");
+  try { const r = await api("/api/call", { protocol: state.proto, method: $("#method").value, args: readArgs() }); remember(r); renderCall(r); }
   catch (err) { $("#callOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
-  finally { btn.disabled = false; btn.textContent = "Envoyer"; loadInfo(); }
+  finally { setBusy(btn, false, "Envoyer"); loadInfo(); }
+});
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !$("#view-call").hidden) { e.preventDefault(); $("#callForm").requestSubmit(); }
+});
+
+/* ── historique de la session ── */
+state.history = [];
+function remember(r) {
+  r.at = new Date();
+  state.history.unshift(r);
+  state.history = state.history.slice(0, 8);
+  const h = $("#history");
+  h.hidden = false;
+  h.innerHTML = `<div class="panel-title"><h3>Derniers appels</h3><span>cliquer pour revoir le détail</span></div>
+    <table><tr><th>Heure</th><th>Protocole</th><th>Méthode</th><th>Statut</th><th class="r">Durée</th></tr>
+    ${state.history.map((x, i) => `<tr data-h="${i}" tabindex="0"><td class="mono">${x.at.toLocaleTimeString("fr-FR")}</td>
+      <td><span class="sw" style="--c:${P[x.protocol].ch}"></span>${P[x.protocol].name}</td><td class="mono">${esc(x.method)}</td>
+      <td class="${x.status === "OK" ? "good" : "bad"}">${esc(x.status)}</td><td class="r mono">${ms(x.elapsed_ms)} ms</td></tr>`).join("")}</table>`;
+  $$("#history tr[data-h]").forEach(tr => {
+    const open = () => { const x = state.history[+tr.dataset.h]; setProto(x.protocol); renderCall(x); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    tr.addEventListener("click", open);
+    tr.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+  });
+}
+
+/* ── comparaison des trois protocoles ── */
+function wireSizes(r) {
+  if (r.trace) {
+    const req = r.trace.find(s => s.step.startsWith("STUB_MARSHAL"));
+    const res = r.trace.find(s => s.step.startsWith("SERIALIZE_RESPONSE"));
+    return [req ? parseInt(req.details.taille) + 4 : null, res ? parseInt(res.details.taille) + 4 : null];
+  }
+  if (r.grpc) return [r.grpc.request.size + 5, r.grpc.response ? r.grpc.response.size + 5 : null];
+  if (r.http) return [r.http.request_size, r.http.response_size];
+  return [null, null];
+}
+async function compareAll() {
+  const btn = $("#compareBtn"), method = $("#method").value, args = readArgs();
+  setBusy(btn, true, "Comparaison");
+  const results = [];
+  try {
+    for (const protocol of ["custom", "grpc", "rest"]) {
+      const r = await api("/api/call", { protocol, method, args });
+      remember(r); results.push(r);
+    }
+    const max = Math.max(...results.map(r => r.elapsed_ms));
+    $("#callOut").innerHTML = `<div style="margin-top:26px">
+      <div class="panel-title"><h3>Le même appel, trois protocoles</h3><span>${esc(method)}(${esc(Object.entries(args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", "))})</span></div>
+      <table class="cmp"><tr><th>Protocole</th><th>Statut</th><th class="r">Durée</th><th></th><th class="r">Requête</th><th class="r">Réponse</th></tr>
+      ${results.map((r, i) => { const [q, a] = wireSizes(r); return `<tr class="pick" data-i="${i}" tabindex="0">
+        <td><span class="sw" style="--c:${P[r.protocol].ch}"></span>${P[r.protocol].name}</td>
+        <td class="${r.status === "OK" ? "good" : "bad"}">${esc(r.status)}</td>
+        <td class="r mono">${ms(r.elapsed_ms)} ms</td>
+        <td class="bar"><div class="meter" style="--c:${P[r.protocol].ch};width:${Math.max(1, r.elapsed_ms / max * 100)}%"></div></td>
+        <td class="r mono">${q ?? "—"} o</td><td class="r mono">${a ?? "—"} o</td></tr>`; }).join("")}</table>
+      <p class="note">Un seul appel par protocole : la durée varie d'un essai à l'autre (le premier appel gRPC ouvre aussi sa connexion). Pour des chiffres fiables, utilisez la vue Mesure. Octets : message + trame pour Custom RPC et gRPC, requête HTTP complète et corps de la réponse pour REST. Cliquez sur une ligne pour voir sa séquence.${method === "update_stock" ? " Attention : update_stock a été exécuté trois fois." : ""}</p></div>`;
+    $$("#callOut tr.pick").forEach(tr => {
+      const open = () => { const r = results[+tr.dataset.i]; setProto(r.protocol); renderCall(r); };
+      tr.addEventListener("click", open);
+      tr.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+    });
+  } catch (err) { $("#callOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
+  finally { setBusy(btn, false, "Comparer les 3 protocoles"); loadInfo(); }
+}
+$("#compareBtn").addEventListener("click", compareAll);
+
+/* ── points de départ ── */
+const PRESETS = {
+  trace: ["custom", "calculate_factorial", { n: 5 }],
+  bytes: ["grpc", "update_stock", { item_id: "PROD-002", quantity_delta: -1 }],
+  compare: ["custom", "get_product_details", { item_id: "PROD-001" }],
+  stream: ["custom", "stream_analytics", { metric_name: "cpu_usage", num_events: 5 }],
+};
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-preset]");
+  if (!b) return;
+  const [proto, method, args] = PRESETS[b.dataset.preset];
+  setProto(proto);
+  $("#method").value = method; renderArgs();
+  Object.entries(args).forEach(([k, v]) => { const i = $(`[data-arg="${k}"]`); if (i) i.value = v; });
+  if (b.dataset.preset === "compare") compareAll(); else $("#callForm").requestSubmit();
 });
 
 /* ── diagramme de séquence ── */
@@ -388,7 +530,7 @@ function buildSteps(r) {
   ];
   if (ok) steps.push({ side: "server", label: "réponse sérialisée", raw: "REPLY", d: { taille: resB } });
   steps.push({ side: "client", label: ok ? "résultat rendu à l'appelant" : `erreur : ${r.status}`, raw: "DONE", t: r.elapsed_ms });
-  if (!ok && !r.grpc && !r.http) steps.splice(1, 2); // le serveur n'a jamais répondu
+  if (!ok && !r.grpc && !r.http) steps.splice(1, 1); // le serveur n'a jamais répondu
   return steps;
 }
 // Associe chaque envoi réseau à sa réception de l'autre côté (une flèche par message).
@@ -444,9 +586,11 @@ function drawSequence(r) {
   steps.forEach((s, i) => {
     const x = s.side === "client" ? xc : xs, yy = y(i);
     const g = el("g", { class: "appear", style: `--d:${delay}ms` }, svg);
+    if (s.d) el("title", {}, g).textContent = Object.entries(s.d).filter(([k]) => k !== "payload")
+      .map(([k, v]) => `${k} : ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
     el("circle", { cx: x, cy: yy, r: 3.2, class: "dot" }, g);
     if (s.t !== undefined) txt(g, 8, yy + 4, `+${ms(s.t, 3)}`, { class: "t" });
-    if (s.side === "client") txt(g, xc - 16, yy + 4, s.label, { "text-anchor": "end" });
+    if (s.side === "client") txt(g, xc - 16, yy + 4, s.label, { "text-anchor": "end", ...(s.raw === "DONE" && r.status !== "OK" ? { class: "fail" } : {}) });
     else txt(g, xs + 16, yy + 4, s.label);
     delay += 70;
     const out = arrows.filter(a => a.from === i);
@@ -459,6 +603,14 @@ function drawSequence(r) {
       delay += a.label ? 260 : 120;
     });
   });
+  // Échec réseau : la requête part mais aucune réponse ne revient.
+  if (r.status !== "OK" && firstS < 0) {
+    const si = Math.max(0, steps.findIndex(t => /^(TRANSPORT_SEND|SEND)/.test(t.raw)));
+    const yy = y(si), mid = (xc + xs) / 2;
+    el("path", { d: `M${xc} ${yy} L${mid} ${yy + 22}`, class: "msg", style: "stroke:var(--fault);stroke-dasharray:5 4" }, svg);
+    txt(svg, mid + 6, yy + 26, "✕", { style: "fill:var(--fault);font-weight:700;font-size:15px" });
+    txt(svg, mid + 24, yy + 26, "aucune réponse", { style: "fill:var(--fault)" });
+  }
   const defs = el("defs", {}, svg);
   const m = el("marker", { id: "arrow", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
   el("path", { d: "M0 0 L10 5 L0 10 z", class: "hl" }, m);
@@ -523,9 +675,22 @@ function renderCall(r) {
     </div>
     <p class="note">${NOTES[r.protocol]}</p>`;
   $("#seqHost").appendChild(drawSequence(r));
+  const addCopy = () => $$("#tabBody pre.code").forEach(pre => {
+    const wrap = document.createElement("div"); wrap.className = "codewrap";
+    pre.replaceWith(wrap); wrap.appendChild(pre);
+    const c = document.createElement("button"); c.className = "copy"; c.type = "button"; c.textContent = "Copier";
+    c.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(pre.innerText); c.textContent = "Copié"; }
+      catch { c.textContent = "Copie impossible"; }
+      setTimeout(() => c.textContent = "Copier", 1500);
+    });
+    wrap.appendChild(c);
+  });
+  addCopy();
   $$("#callOut .tabs button").forEach(b => b.addEventListener("click", () => {
     $$("#callOut .tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $("#tabBody").innerHTML = body[b.dataset.t];
+    addCopy();
   }));
 }
 
@@ -597,7 +762,9 @@ function bars(rows, unit, digits) {
     <span class="val num">${ms(r.v, digits)} ${unit}</span>`).join("")}</div>`;
 }
 $("#benchBtn").addEventListener("click", async () => {
-  const btn = $("#benchBtn"); btn.disabled = true; btn.textContent = "Mesure en cours…";
+  const btn = $("#benchBtn"), t0 = Date.now();
+  setBusy(btn, true, "Mesure en cours");
+  const tick = setInterval(() => btn.textContent = `Mesure en cours, ${Math.round((Date.now() - t0) / 1000)} s`, 1000);
   try {
     const b = await api("/api/benchmark", { iterations: +$("#bN").value, operation: $("#bOp").value });
     let html = b.simulator_active ? `<p class="warn">Une panne est active : ces mesures l'incluent.</p>` : "";
@@ -611,14 +778,16 @@ $("#benchBtn").addEventListener("click", async () => {
     html += `<p class="note">Valeurs mesurées sur cette machine, en local : elles comparent nos implémentations dans ces conditions, pas les technologies en général.</p>`;
     $("#benchOut").innerHTML = html;
   } catch (err) { $("#benchOut").innerHTML = `<p class="note">${esc(err.message)}</p>`; }
-  finally { btn.disabled = false; btn.textContent = "Mesurer"; }
+  finally { clearInterval(tick); setBusy(btn, false, "Mesurer"); }
 });
 
 /* ── pannes ── */
 $("#faultForm").addEventListener("submit", async e => {
   e.preventDefault();
   const kind = new FormData(e.target).get("fault");
-  renderFault(await api("/api/faults", { kind, value: kind === "latency" ? +$("#fLat").value : 3 }));
+  const st = await api("/api/faults", { kind, value: kind === "latency" ? +$("#fLat").value : 3 });
+  renderFault(st);
+  $("#faultApplied").textContent = st.active_scenario ? `Appliqué : ${faultText(st.active_scenario).toLowerCase()}.` : "Réseau rétabli.";
 });
 $("#fLat").addEventListener("focus", () => { $('input[name=fault][value=latency]').checked = true; });
 const EXPS = [
@@ -665,6 +834,7 @@ $("#contractBtn").addEventListener("click", async () => {
 });
 
 setProto("custom");
+showView(location.hash.slice(1) || "call");
 loadInfo().catch(err => $("#callOut").innerHTML = `<p class="note">Impossible de joindre le tableau de bord : ${esc(err.message)}</p>`);
 </script>
 </body>
