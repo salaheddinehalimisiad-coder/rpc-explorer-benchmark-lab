@@ -290,7 +290,7 @@ message ProductResponse {
 }
 ```
 
-#### `grpc/grpc_server.py`
+#### `grpc_impl/grpc_server.py`
 Implémentation du serveur gRPC
 
 **Responsabilités :**
@@ -298,7 +298,7 @@ Implémentation du serveur gRPC
 2. Démarrer le serveur gRPC
 3. Exposer les fonctions métier via gRPC
 
-#### `grpc/grpc_client.py`
+#### `grpc_impl/grpc_client.py`
 Client gRPC généré et utilisé pour les appels
 
 **Types d'appels supportés :**
@@ -721,7 +721,7 @@ SOA_Project/
 │   ├── client_stub.py           # Client RPC Custom
 │   └── server_skeleton.py       # Serveur RPC Custom
 │
-├── grpc/                        # gRPC Implementation
+├── grpc_impl/                   # gRPC Implementation
 │   ├── __init__.py
 │   ├── grpc_server.py           # Serveur gRPC
 │   └── grpc_client.py           # Client gRPC

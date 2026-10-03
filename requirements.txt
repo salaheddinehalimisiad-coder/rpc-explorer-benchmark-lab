@@ -1,26 +1,18 @@
-# Dépendances du Projet RPC Explorer & Benchmark Lab
+# RPC Explorer & Benchmark Lab — dépendances (Python >= 3.9)
 
-# Core Python (Python >= 3.8 requis, specifié dans pyproject.toml)
-# python>=3.8
+# --- Exécution ---------------------------------------------------------------
+# gRPC + Protobuf. Le code généré (protos/*_pb2*.py) a été produit avec
+# grpcio-tools 1.84 / protobuf 7.35 : le runtime doit être AU MOINS à ces versions.
+# Avec des versions plus anciennes, régénérez : python scripts/generate_protos.py
+grpcio>=1.84.0
+protobuf>=7.35.1
 
-# gRPC & Protobuf
-grpcio>=1.60.0
-grpcio-tools>=1.60.0
-protobuf>=4.25.0
-
-# REST API
+# REST (serveur Flask + client requests)
 flask>=3.0.0
 flask-cors>=4.0.0
+requests>=2.31.0
 
-# Testing
+# --- Développement / tests ---------------------------------------------------
+grpcio-tools>=1.84.0   # compilateur protoc (régénération des stubs)
 pytest>=7.4.0
 pytest-cov>=4.1.0
-pytest-asyncio>=0.21.0
-
-# Benchmarking & Metrics
-numpy>=1.24.0
-matplotlib>=3.7.0
-
-# Utilities
-python-dotenv>=1.0.0
-pyyaml>=6.0

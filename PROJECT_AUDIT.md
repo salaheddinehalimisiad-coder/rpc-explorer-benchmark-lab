@@ -1,11 +1,51 @@
 # PROJECT AUDIT — RPC EXPLORER & BENCHMARK LAB
 
-**Dernière mise à jour :** 26 septembre 2026  
-**Auditeur :** Antigravity Agent  
-**Phase active actuelle :** FIN DE PHASE 07 (FAILURE SIMULATOR VALIDÉ — 188/188 TESTS PASS)  
-**Historique initial :** Phase 00 réalisée le 25 septembre 2026  
+**Dernière mise à jour :** 3 octobre 2026
+**Phase active actuelle :** PHASES 08 À 11 TERMINÉES — voir section 00 ci-dessous
 
 ---
+
+## 00. AUDIT ET COMPLÉTION DU 3 OCTOBRE 2026
+
+### Constat de l'audit (état avant intervention)
+| Élément | Statut constaté |
+|---|---|
+| Custom RPC, service métier, gRPC, REST, benchmark, simulateur | FONCTIONNEL (188/188 tests verts, vérifié) |
+| `grpc/` masquant la bibliothèque `grpc` officielle (hack `sys.modules`) | FRAGILE |
+| `RPCServer.stop()` ne fermant pas les connexions actives / port non libéré | CASSÉ (révélé par un nouveau test) |
+| Client REST : timeout présenté comme erreur de connexion | INCORRECT |
+| `under_the_hood/tracer.py`, `cli/cli_runner.py` | ABSENT (placeholders `NotImplementedError`) |
+| `main.py --benchmark` / `--simulate-failures` | ABSENT (affichaient « sera opérationnel en Phase 0X ») |
+| Évolution de contrat, démo transparence, retry | ABSENT |
+| Aucun moyen de lancer un serveur seul en terminal | ABSENT |
+| README : benchmark chiffré inventé, commandes erronées | INCORRECT |
+| requirements : `requests` manquant, 5 paquets inutilisés | INCORRECT |
+
+### Travaux réalisés (commits séparés)
+1. `refactor:` renommage `grpc/` → `grpc_impl/`.
+2. `feat(under-the-hood):` traceur, inspecteur Protobuf, lanceur `lab.servers`, correction de `RPCServer.stop()`.
+3. `feat(phase-10):` évolution de contrat, démo pannes / retry / idempotence, démo transparence, correction client REST.
+4. `feat(phase-11):` `main.py` complet, CLI interactif, campagne de benchmark.
+5. `docs/chore:` README, guide, dépendances, script de génération Protobuf, CI.
+
+### Preuves
+- `python -m pytest -q` → **226 passed** (Linux, Python 3.13.16, grpcio 1.84.0, protobuf 7.36.1) — STATUT : VÉRIFIÉ.
+- Chaque mode de `main.py` a été exécuté de bout en bout ; mode `--serve` / `--call` vérifié entre deux processus distincts — STATUT : VÉRIFIÉ.
+- Exécution sous Windows : STATUT : NON VÉRIFIÉ localement (la CI GitHub Actions inclut `windows-latest`).
+
+### Observations de mesure (Linux, localhost — non généralisables)
+- Custom RPC avec connexion persistante < Custom RPC 1 connexion/appel < gRPC < REST en latence médiane sur `calculate_factorial(10)`.
+- Protobuf : messages 5 à 20 fois plus petits que le JSON du Custom RPC ; sérialisation ≈ 10× plus rapide.
+- Retry naïf sur `update_stock` après timeout : 2 unités retirées au lieu d'1 ; avec clé d'idempotence : 1.
+
+### Risques / limites connues
+- Le Custom RPC ne fait pas de vrai streaming (`stream_analytics` renvoie une liste complète).
+- Le serveur REST utilise le serveur de développement Flask/werkzeug : ses performances ne représentent pas un déploiement réel.
+- Les benchmarks sont en localhost : la latence réseau réelle n'est simulée qu'artificiellement.
+
+---
+
+## HISTORIQUE ANTÉRIEUR
 
 ## 0. ÉTAT RÉCAPITULATIF SUITE À LA PHASE 07 (26 SEPTEMBRE 2026)
 
