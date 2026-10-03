@@ -21,7 +21,7 @@ import argparse
 import json
 import sys
 
-VERSION = "RPC Explorer & Benchmark Lab v1.0.0"
+VERSION = "RPC Explorer & Benchmark Lab v1.3.0"
 DEFAULT_PORTS = {"custom": 5000, "grpc": 50051, "rest": 5001}
 
 
